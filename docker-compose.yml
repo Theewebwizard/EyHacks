@@ -23,6 +23,13 @@ services:
       - assistant-chatbot
       - realtime-voice
 
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
   backend-node:
     build: 
       context: ./backend
@@ -31,7 +38,7 @@ services:
       - "5001:5001"
     environment:
       - PORT=5001
-      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_URI=mongodb://mongodb:27017/myDatabase
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
@@ -69,3 +76,6 @@ services:
       - API_KEY=${API_KEY}
     depends_on:
       - rabbitmq
+
+volumes:
+  mongodb_data:
