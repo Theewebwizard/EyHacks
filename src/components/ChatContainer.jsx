@@ -1,7 +1,7 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import ChatInput from './ChatInput';
 import Typewriter from './Typewriter';
-import { Plus, User } from 'lucide-react';
+import { Plus, User, Bot } from 'lucide-react';
 
 // Helper function to parse markdown in static messages.
 const parseMarkdown = (input) => {
@@ -131,18 +131,37 @@ const ChatContainer = () => {
           messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${
+              className={`flex w-full mb-4 ${
                 message.isBot ? 'justify-start' : 'justify-end'
               }`}
             >
               <div
-                className={`max-w-[85%] p-3.5 rounded-2xl shadow-sm border transition-all duration-300 ${
-                  message.isBot
-                    ? 'bg-slate-900/60 text-slate-100 border-white/10 rounded-tl-none hover:border-white/20'
-                    : 'bg-teal-950/40 text-teal-100 border-teal-500/20 rounded-tr-none hover:border-teal-500/35'
+                className={`flex gap-3 max-w-[85%] ${
+                  message.isBot ? 'flex-row' : 'flex-row-reverse'
                 }`}
               >
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                {/* Avatar */}
+                <div className="shrink-0 mt-1">
+                  {message.isBot ? (
+                    <div className="size-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white shadow-lg border border-white/20">
+                      <Bot size={16} />
+                    </div>
+                  ) : (
+                    <div className="size-8 rounded-full bg-slate-700/80 flex items-center justify-center text-gray-300 border border-white/10 shadow-sm">
+                      <User size={16} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Message Bubble */}
+                <div
+                  className={`p-4 rounded-2xl shadow-sm border transition-all duration-300 ${
+                    message.isBot
+                      ? 'bg-slate-900/80 backdrop-blur-md text-slate-100 border-white/10 rounded-tl-sm hover:border-white/20'
+                      : 'bg-teal-900/40 backdrop-blur-md text-teal-50 border-teal-500/30 rounded-tr-sm hover:border-teal-500/50 shadow-[0_4px_20px_rgba(20,184,166,0.1)]'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed tracking-wide">
                   {message.isBot ? (
                     message.animate ? (
                       <Typewriter
@@ -157,16 +176,17 @@ const ChatContainer = () => {
                   ) : (
                     parseMarkdown(message.text)
                   )}
-                </div>
-                <div
-                  className={`text-[10px] mt-1.5 font-medium tracking-wide ${
-                    message.isBot ? 'text-gray-500' : 'text-teal-400/70'
-                  }`}
-                >
-                  {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  </div>
+                  <div
+                    className={`text-[10px] mt-2 font-medium tracking-wide flex items-center gap-1 ${
+                      message.isBot ? 'text-gray-500' : 'text-teal-400/70 justify-end'
+                    }`}
+                  >
+                    {new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

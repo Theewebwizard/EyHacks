@@ -34,7 +34,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="fixed top-0 left-0 w-full bg-slate-950/40 backdrop-blur-md border-b border-white/10 z-30">
+      <div className="fixed top-0 left-0 w-full bg-slate-950/40 backdrop-blur-md border-b border-white/10 z-50">
         <div className="pl-[6.5rem] pr-[1.5rem] md:pl-[6.5rem] h-16 flex items-center bg-transparent">
           <div className="flex flex-row justify-between items-center w-full">
             <div className="text-3xl font-extrabold font-dmsans bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.2)]">
@@ -96,28 +96,24 @@ const Navbar = () => {
 
               {/* Settings Button */}
               <button 
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300 relative group"
+                onClick={(e) => { e.preventDefault(); setIsSettingsOpen(true); }}
+                className="p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300 relative"
                 aria-label="Settings"
+                title="Settings"
               >
-                <Cog className="size-5 transition-transform duration-500 group-hover:rotate-90" />
-                <span className="absolute top-12 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900/90 border border-white/10 rounded-md text-xs text-gray-300 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-md">
-                  Settings
-                </span>
+                <Cog className="size-5 transition-transform duration-300 hover:rotate-90" />
               </button>
 
               {authAgent && (
                 <>
                   {/* Logout Button */}
                   <button
-                    className="p-2.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 relative group"
+                    className="p-2.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-300 relative"
                     onClick={logout}
                     aria-label="Logout"
+                    title="Logout"
                   >
                     <LogOut className="size-5" />
-                    <span className="absolute top-12 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-slate-900/90 border border-white/10 rounded-md text-xs text-gray-300 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-md">
-                      Logout
-                    </span>
                   </button>
 
                   {/* Dynamic Initial Profile Avatar */}
@@ -129,7 +125,7 @@ const Navbar = () => {
                         className="size-10 rounded-full border border-white/10 object-cover shadow-[0_0_12px_rgba(255,255,255,0.1)] transition-transform duration-300 hover:scale-105"
                       />
                     ) : (
-                      <div className="size-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-sm font-bold text-white border border-white/20 shadow-[0_0_15px_rgba(52,211,153,0.15)] transition-all duration-300 hover:scale-105 hover:border-emerald-400">
+                      <div className="size-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-sm font-bold text-slate-900 border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.4)] transition-all duration-300 hover:scale-105 hover:border-yellow-200">
                         {getInitials(authAgent.fullName)}
                       </div>
                     )}
@@ -151,7 +147,7 @@ const Navbar = () => {
       {/* Settings Modal (Overlay Overlay) */}
       <AnimatePresence>
         {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}

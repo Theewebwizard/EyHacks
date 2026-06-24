@@ -17,7 +17,8 @@ export const useAuthStore = create((set, get) => ({
             set({ authAgent: res.data });
 
         } catch (error) {
-            console.log("error in checkAuth", error);
+            // Safe to ignore or log minimally: means no active agent cookie session exists
+            console.log("No active agent session detected.");
             set({ authAgent: null });
         } finally {
             set({ isCheckingAuth: false });

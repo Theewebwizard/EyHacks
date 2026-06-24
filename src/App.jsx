@@ -30,8 +30,10 @@ const App = () => {
   const location = useLocation();
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    if (!location.pathname.startsWith('/client')) {
+      checkAuth();
+    }
+  }, [checkAuth, location.pathname]);
 
   return (
     <Layout>

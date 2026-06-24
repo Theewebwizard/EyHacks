@@ -14,7 +14,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   const sidebarContent = (
-    <div className="flex flex-col items-center pt-[6rem] gap-6 w-full h-full">
+    <div className="flex flex-col items-center pt-8 gap-6 w-full h-full">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/home');
         return (
@@ -41,7 +41,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Desktop Sidebar (md and up) */}
-      <div className="hidden md:flex fixed left-0 top-0 h-screen w-[5rem] bg-[#0f172a]/80 backdrop-blur-md border-r border-white/10 z-40">
+      <div className="hidden md:flex fixed left-0 top-[4rem] h-[calc(100vh-4rem)] w-[5rem] bg-[#0f172a]/70 backdrop-blur-xl border-r border-t border-white/10 z-30">
         {sidebarContent}
       </div>
 
