@@ -11,8 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.tools import tool
-from typing import Annotated, Sequence, cast, List, Dict, Any
-from typing_extensions import TypedDict
+from typing import Annotated, Sequence, cast, List, Dict, Any, TypedDict
 import operator
 from dotenv import load_dotenv
 import subprocess
@@ -89,18 +88,38 @@ tool_node = ToolNode(tools)
 # --- Safe LLM Invocation with Retry on Rate Limits ---
 def safe_chat_invoke(messages, retries=5, delay=3):
     import time
+    response = None
     for i in range(retries):
         try:
-            return chat.invoke(messages)
+            response = chat.invoke(messages)
+            break
         except Exception as e:
             err_str = str(e).lower()
-            if "rate_limit" in err_str or "429" in err_str:
+            if "rate_limit" in err_str or "rate limit" in err_str or "429" in err_str or "tpm" in err_str:
                 print(f"⚠️ Groq rate limit hit. Waiting {delay}s before retry (attempt {i+1}/{retries})...")
                 time.sleep(delay)
                 delay *= 2
             else:
                 raise e
-    return chat.invoke(messages)
+    if response is None:
+        response = chat.invoke(messages)
+
+    # Normalize response.content to always be a string
+    if hasattr(response, 'content'):
+        if isinstance(response.content, list):
+            parts = []
+            for block in response.content:
+                if isinstance(block, dict) and "text" in block:
+                    parts.append(block["text"])
+                elif isinstance(block, str):
+                    parts.append(block)
+                else:
+                    parts.append(str(block))
+            response.content = "".join(parts)
+        elif not isinstance(response.content, str):
+            response.content = str(response.content)
+
+    return response
 
 def generate_suggestion(state: AgentState):
     """Draft a suggestion based on the conversation and tools."""
@@ -129,53 +148,51 @@ def router(state: AgentState):
         return END
     return "generate"
 
-graph = StateGraph(AgentState)  # type: ignore
-graph.add_node("generate", generate_suggestion)
-graph.add_node("reflect", reflect)
-# Simplified graph without cyclical tool forcing for stability
-graph.add_edge("generate", "reflect")
-graph.add_conditional_edges("reflect", router, {END: END, "generate": "generate"})
-graph.set_entry_point("generate")
 
-compiled_graph = graph.compile()
+# --- LangGraph Definition ---
+workflow = StateGraph(AgentState)
+workflow.add_node("generate", generate_suggestion)
+workflow.add_node("reflect", reflect)
+`AgentState` is not assignable to upper bound `BaseModel | DataclassLike | TypedDictLikeV1 | TypedDictLikeV2` of type variable `StateT`Pyreflybad-specialization
+(class) AgentState: type[AgentState]
+Go to AgentState
+workflow.add_conditional_edges(
+    "reflect",
+    router,
+    {
+        END: END,
+        "generate": "generate"
+    }
+)
 
-conversation_history = []
+workflow.set_entry_point("generate")
+workflow.add_edge("generate", "reflect")
 
-def analyze_sentiment_and_emit(text: str):
-    """Analyze the text and emit an alert if negative sentiment is high."""
+compiled_graph = workflow.compile()
+
+
+# --- Main Conversation Processor ---
+def analyze_sentiment_and_emit(conversation_text):
+    """Analyze sentiment and emit it to the client via Socket.IO."""
     try:
-        results = sentiment_analyzer(text)
-        # Results is a list of lists of dicts: [[{'label': 'sadness', 'score': 0.9}, ...]]
-        emotions = {}
-        if isinstance(results, list) and len(results) > 0:
-            first_res = results[0]
-            if isinstance(first_res, list):
-                res_list = cast(List[Dict[str, Any]], first_res)
-                for item in res_list:
-                    emotions[str(item.get('label'))] = float(item.get('score', 0.0))
-        
-        anger_score = emotions.get('anger', 0.0)
-        sadness_score = emotions.get('sadness', 0.0)
-        fear_score = emotions.get('fear', 0.0)
-        
-        # We consider negative sentiment to be anger
-        if anger_score > 0.70:
-            socketio.emit('sentiment_alert', {
-                'emotion': 'Anger/Frustration',
-                'score': round(anger_score, 2),
-                'message': 'Client appears highly frustrated! Please handle with care and escalate if necessary.'
-            })
-            print(f"🚨 SENTIMENT ALERT: Anger detected ({anger_score:.2f})")
+        prompt = f"Analyze the sentiment of the following conversation and return exactly one word: POSITIVE, NEGATIVE, or NEUTRAL.\n\nConversation:\n{conversation_text}"
+        response = safe_chat_invoke([HumanMessage(content=prompt)])
+        sentiment = response.content.strip().upper()
+        if sentiment in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
+            socketio.emit('sentiment_update', {'sentiment': sentiment})
+        else:
+            socketio.emit('sentiment_update', {'sentiment': 'NEUTRAL'})
     except Exception as e:
         print(f"Sentiment analysis error: {e}")
+        socketio.emit('sentiment_update', {'sentiment': 'NEUTRAL'})
 
-def extract_financial_details(conversation_text: str) -> dict:
-    """Extract claim amount and date from conversation using LLM."""
+def extract_financial_details(conversation_text):
+    """Extract financial details and return JSON structured info."""
     try:
-        prompt = f"""Extract financial details from this insurance call conversation. Return ONLY a JSON object with these exact keys:
-- "claim_amount": the monetary amount mentioned (e.g. "₹50,000" or "N/A" if not mentioned)
-- "incident_date": the date of incident mentioned (e.g. "15 Jan 2025" or "N/A" if not mentioned)
-- "client_summary": a 1-2 sentence summary of the client's situation
+        prompt = f"""Extract the following details from this conversation:
+1. claim_amount (estimated value of medical bills mentioned, e.g. "5000")
+2. incident_date (date the event occurred, e.g. "2026-06-24")
+3. client_summary (a 1-sentence summary of client's situation)
 
 Conversation:
 {conversation_text}
@@ -207,15 +224,21 @@ def process_conversation(conversation_text):
     if financial.get('client_summary') or financial.get('claim_amount') != 'N/A':
         socketio.emit('client_summary', financial)
 
-    # Run LangGraph
-    initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
-    final_state = compiled_graph.invoke(initial_state)
+    try:
+        # Run LangGraph
+        initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
+        final_state = compiled_graph.invoke(initial_state)
 
-    formatted_response = final_state["suggestion"]
-    socketio.emit('new_suggestion', {'response': formatted_response})
+        formatted_response = final_state["suggestion"]
+        socketio.emit('new_suggestion', {'response': formatted_response})
 
-    conversation_history.append(AIMessage(content=formatted_response))
-    return formatted_response
+        conversation_history.append(AIMessage(content=formatted_response))
+        return formatted_response
+    except Exception as e:
+        print(f"Error in process_conversation: {e}")
+        fallback_suggestion = f"⚠️ BPO Suggestion Draft: [Suggestion currently unavailable due to rate limit/error: {str(e)}]"
+        socketio.emit('new_suggestion', {'response': fallback_suggestion})
+        return fallback_suggestion
 
 
 # --- Flask Endpoints ---

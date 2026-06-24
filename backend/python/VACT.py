@@ -131,6 +131,9 @@ async def run_mock_mode():
 
 
 async def main():
+    agent_stream = None
+    customer_stream = None
+
     if sd is None or MOCK_MODE or AsyncDeepgramClient is None:
         await run_mock_mode()
         return
@@ -179,6 +182,7 @@ async def main():
                     transcript = result.channel.alternatives[0].transcript
                     if transcript.strip():
                         log_entry = f"{label}: {transcript}\n"
+                        print(log_entry.strip())
                         conversation_buffer.append(log_entry)
 
                         # Append to log file
@@ -243,18 +247,15 @@ async def main():
     except Exception as e:
         print(f"\nReal-mode failed or not supported in this environment: {e}")
         print("Falling back to Mock Mode...")
-        agent_stream_obj = locals().get('agent_stream')
-        if agent_stream_obj and getattr(agent_stream_obj, 'stream', None):
+        if agent_stream and getattr(agent_stream, 'stream', None):
             try:
-                agent_stream_obj.stream.stop()
-                agent_stream_obj.stream.close()
+                agent_stream.stream.stop()
+                agent_stream.stream.close()
             except Exception:
                 pass
-        customer_stream_obj = locals().get('customer_stream')
-        if customer_stream_obj and getattr(customer_stream_obj, 'stream', None):
+        if customer_stream and getattr(customer_stream, 'stream', None):
             try:
-                customer_stream_obj.stream.stop()
-                customer_stream_obj.stream.close()
+                customer_stream.stream.close()
             except Exception:
                 pass
         await run_mock_mode()
