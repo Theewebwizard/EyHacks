@@ -262,7 +262,11 @@ const ClientPortal = () => {
           
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
-              <div className={`max-w-[90%] md:max-w-[85%] p-4 text-sm md:text-base rounded-2xl ${msg.isBot ? 'bg-slate-800/80 text-white rounded-tl-sm border border-white/10 shadow-sm' : 'bg-blue-600/90 text-white rounded-tr-sm shadow-[0_0_10px_rgba(37,99,235,0.3)]'}`}>
+              <div className={`max-w-[90%] md:max-w-[85%] p-4 text-sm md:text-base rounded-2xl border transition-all duration-300 ${
+                msg.isBot 
+                  ? 'bg-slate-900/60 text-slate-100 border-white/10 rounded-tl-none hover:border-white/20' 
+                  : 'bg-teal-950/40 text-teal-100 border-teal-500/20 rounded-tr-none hover:border-teal-500/35 shadow-[0_0_15px_rgba(20,184,166,0.05)]'
+              }`}>
                 {msg.isBot && msg.animate ? (
                   <Typewriter text={msg.text} speed={30} onUpdate={scrollChatToBottom}/>
                 ) : (
@@ -273,29 +277,33 @@ const ClientPortal = () => {
           ))}
           {isChatLoading && (
             <div className="flex justify-start">
-              <div className="bg-slate-800/80 p-4 rounded-2xl rounded-tl-sm border border-white/10 flex gap-2 shadow-sm">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0s'}}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+              <div className="bg-slate-900/40 border border-white/10 p-3.5 rounded-2xl rounded-tl-none flex items-center space-x-1.5 shadow-sm">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking" style={{animationDelay: '0s'}}></div>
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking" style={{animationDelay: '0.2s'}}></div>
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking" style={{animationDelay: '0.4s'}}></div>
               </div>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSendMessage} className="flex gap-2 shrink-0">
-          <input 
-            type="text" 
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask about your claim..." 
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 min-h-[44px] text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-          />
+        <form onSubmit={handleSendMessage} className="flex gap-3 shrink-0 items-center">
+          <div className="flex-1">
+            <div className="w-full rounded-xl p-[1px] bg-white/10 hover:bg-white/15 focus-within:bg-gradient-to-r focus-within:from-blue-500 focus-within:to-emerald-500 focus-within:shadow-[0_0_15px_rgba(52,211,153,0.2)] transition-all duration-300">
+              <input 
+                type="text" 
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask about your claim policy or requirements..." 
+                className="w-full bg-slate-950 text-white placeholder-gray-400 border-0 rounded-[11px] px-4 py-3 min-h-[42px] text-sm focus:outline-none focus:ring-0"
+              />
+            </div>
+          </div>
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit" 
             disabled={isChatLoading || !chatInput.trim()} 
-            className="bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white min-w-[44px] min-h-[44px] px-6 py-3 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] border border-blue-500/50 flex items-center justify-center"
+            className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 text-white min-h-[44px] px-6 py-3 rounded-xl font-bold transition-all shadow-md flex items-center justify-center border-0"
           >
             <span className="hidden sm:inline">Send</span>
             <span className="sm:hidden">→</span>

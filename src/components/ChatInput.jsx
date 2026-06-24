@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Send } from 'lucide-react';
 
 const ChatInput = ({ onSend, isLoading }) => {
   const [text, setText] = useState('');
@@ -16,7 +17,6 @@ const ChatInput = ({ onSend, isLoading }) => {
     }
   };
 
-  // Only blur the input if it's empty when the mouse leaves the area.
   const handleMouseLeave = () => {
     if (inputRef.current && !text.trim()) {
       inputRef.current.blur();
@@ -25,36 +25,36 @@ const ChatInput = ({ onSend, isLoading }) => {
   };
 
   return (
-    <div className="py-4 w-[95%]">
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+    <div className="py-3 w-full">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
         <div className="flex-1" onMouseLeave={handleMouseLeave}>
-          {/* Wrapper for gradient border */}
+          {/* Smooth focus glow border */}
           <div
-            className={`w-full rounded-full p-[2px] transition-colors ${
+            className={`w-full rounded-2xl p-[1px] transition-all duration-300 ${
               isFocused
-                ? 'bg-gradient-to-r from-[#56ACC3] to-[#7FE3A6]'
-                : 'bg-[#57ACC1] opacity-50'
+                ? 'bg-gradient-to-r from-blue-500 to-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.2)]'
+                : 'bg-white/10 hover:bg-white/15'
             }`}
           >
             <input
               ref={inputRef}
               type="text"
-              placeholder="Type your question..."
+              placeholder="Ask Saksham AI anything..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={isLoading}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              className="w-full px-4 py-2 rounded-full bg-black border-0 focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-[15px] bg-slate-950 text-sm text-white placeholder-gray-400 border-0 focus:outline-none focus:ring-0"
             />
           </div>
         </div>
         <button
           type="submit"
-          className="p-2 rounded-full text-white disabled:opacity-50"
+          className="p-3 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-2xl transition-all duration-300 shadow-md hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 flex items-center justify-center min-w-[44px] min-h-[44px]"
           disabled={!text.trim() || isLoading}
         >
-          <img src="/send.png" alt="send" className="w-7 h-7 hover:scale-125" />
+          <Send className="size-4" />
         </button>
       </form>
     </div>

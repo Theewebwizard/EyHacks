@@ -1,6 +1,7 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import ChatInput from './ChatInput';
 import Typewriter from './Typewriter';
+import { Plus, User } from 'lucide-react';
 
 // Helper function to parse markdown in static messages.
 const parseMarkdown = (input) => {
@@ -114,86 +115,96 @@ const ChatContainer = () => {
   };
 
   return (
-    <div className="flex flex-col h-166 max-w-3xl mx-auto shadow-lg">
-      <div ref={containerRef} className="flex-1 overflow-y-auto space-y-4">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              message.isBot ? 'justify-start' : 'justify-end'
-            }`}
-          >
+    <div className="flex flex-col h-full w-full font-dmsans">
+      {/* Scrollable Message History */}
+      <div 
+        ref={containerRef} 
+        className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4"
+      >
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-6">
+            <User className="size-10 mb-3 text-emerald-400" />
+            <p className="text-sm">Welcome to Saksham AI</p>
+            <p className="text-xs text-gray-400 mt-1">Ask questions about claims process validation rules, status, or files.</p>
+          </div>
+        ) : (
+          messages.map((message, index) => (
             <div
-              className={`max-w-[80%] font-[Roboto] p-3 rounded-t-3xl ${
-                message.isBot
-                  ? 'bg-[#81F2F0] text-gray-800 border border-black rounded-br-3xl'
-                  : 'bg-[#336A72] text-white border border-black rounded-bl-3xl'
+              key={index}
+              className={`flex ${
+                message.isBot ? 'justify-start' : 'justify-end'
               }`}
             >
-              <div className="whitespace-pre-wrap font-[Roboto] text-lg">
-                {message.isBot ? (
-                  message.animate ? (
-                    <Typewriter
-                      text={message.text}
-                      speed={50}
-                      animate={true}
-                      onUpdate={scrollToBottom}
-                    />
-                  ) : (
-                    parseMarkdown(message.text)
-                  )
-                ) : (
-                  parseMarkdown(message.text)
-                )}
-              </div>
               <div
-                className={`text-xs mt-1 ${
-                  message.isBot ? 'text-gray-500' : 'text-blue-100'
+                className={`max-w-[85%] p-3.5 rounded-2xl shadow-sm border transition-all duration-300 ${
+                  message.isBot
+                    ? 'bg-slate-900/60 text-slate-100 border-white/10 rounded-tl-none hover:border-white/20'
+                    : 'bg-teal-950/40 text-teal-100 border-teal-500/20 rounded-tr-none hover:border-teal-500/35'
                 }`}
               >
-                {new Date(message.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {message.isBot ? (
+                    message.animate ? (
+                      <Typewriter
+                        text={message.text}
+                        speed={30}
+                        animate={true}
+                        onUpdate={scrollToBottom}
+                      />
+                    ) : (
+                      parseMarkdown(message.text)
+                    )
+                  ) : (
+                    parseMarkdown(message.text)
+                  )}
+                </div>
+                <div
+                  className={`text-[10px] mt-1.5 font-medium tracking-wide ${
+                    message.isBot ? 'text-gray-500' : 'text-teal-400/70'
+                  }`}
+                >
+                  {new Date(message.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        <div />
+          ))
+        )}
+        
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-[#81F2F0] p-3 rounded-lg border border-gray-200 flex items-center space-x-1">
+            <div className="bg-slate-900/40 border border-white/10 p-3.5 rounded-2xl rounded-tl-none flex items-center space-x-1.5 shadow-sm">
               <div
                 style={{ animationDelay: '0s' }}
-                className="w-2 h-2 bg-gray-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
               ></div>
               <div
                 style={{ animationDelay: '0.2s' }}
-                className="w-2 h-2 bg-gray-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
               ></div>
               <div
                 style={{ animationDelay: '0.4s' }}
-                className="w-2 h-2 bg-gray-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
               ></div>
             </div>
           </div>
         )}
       </div>
-      <div className="flex items-center">
-        <div className="flex justify-end p-2">
-          <button
-            onClick={handleNewChat}
-            className="bg-transparent p-2 rounded-full transition-colors duration-200 group"
-          >
-            <img
-              src="/add.png"
-              alt="New Chat"
-              className="w-9 h-9 transition-transform duration-300 ease-in-out transform group-hover:rotate-90 group-hover:scale-125"
-              title="Start a New Chat"
-            />
-          </button>
+
+      {/* Input Bar Section */}
+      <div className="flex items-center gap-2 border-t border-white/10 pt-2 shrink-0 bg-transparent">
+        <button
+          onClick={handleNewChat}
+          className="p-3 bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300 group flex items-center justify-center min-w-[44px] min-h-[44px]"
+          title="Start a New Chat"
+        >
+          <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+        </button>
+        <div className="flex-1">
+          <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
         </div>
-        <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
       </div>
     </div>
   );

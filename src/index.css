@@ -153,8 +153,10 @@
 
 /* Global styles */
 body {
-  background: #1a293e;
+  background: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
   font-family: var(--font-dmsans);
+  color: #f8fafc;
+  min-height: 100vh;
 }
 
 .container {
@@ -227,4 +229,13 @@ a:hover {
 
 .animate-thinking {
   animation: thinking 1.5s infinite;
+}
+
+/* Hide scrollbars globally while keeping scroll functionality */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
