@@ -5,9 +5,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from sentence_transformers import CrossEncoder
 
-# Initialize embeddings and index name.
+# Initialize embeddings, cross-encoder, and index name.
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
 index_name = "langchain-chatbot"
 
 def initialize_pinecone():
@@ -29,6 +31,24 @@ def setup_vector_store():
     except Exception:
         return None
 
+def rerank_documents(query, documents, top_k=3):
+    """Re-rank documents using the Cross-Encoder."""
+    if not documents:
+        return []
+    
+    # Create pairs of (query, document_text)
+    pairs = [[query, doc.page_content] for doc, _ in documents]
+    
+    # Score pairs
+    scores = cross_encoder.predict(pairs)
+    
+    # Sort documents by score descending
+    scored_docs = zip(documents, scores)
+    sorted_docs = sorted(scored_docs, key=lambda x: x[1], reverse=True)
+    
+    # Return top_k documents (stripping out the score and relevance from similarity search)
+    return [doc for (doc, _), score in sorted_docs[:top_k]]
+
 def initialize_gemini():
     try:
         google_api_key = os.getenv("GOOGLE_API_KEY")
@@ -38,7 +58,7 @@ def initialize_gemini():
             google_api_key=google_api_key
         )
         prompt_template = (
-                "You are a claims process validator. Answer ONLY using the provided context.\n\n"
+                "You are a strict claims process validator. Answer ONLY using the provided context.\n\n"
                 "Context:\n{context}\n\n"
                 "Response Rules:\n"
                 "1. If context contains the exact answer:\n"
@@ -66,18 +86,24 @@ def query_interface(vector_store, rag_chain):
             if user_input.lower() in ['exit', 'quit']:
                 break
 
+            # 1. Fetch larger batch using similarity search (Dense)
             results = vector_store.similarity_search_with_relevance_scores(
                 user_input,
-                k=3,
-                score_threshold=0.6
+                k=15, # Increased K for re-ranking pool
+                score_threshold=0.3
             )
 
             if not results:
                 continue
+                
+            # 2. Re-rank with Cross-Encoder
+            top_docs = rerank_documents(user_input, results, top_k=3)
 
-            context = "\n".join([doc.page_content for doc, _ in results])
+            # 3. Pass to Gemini
+            context = "\n".join([doc.page_content for doc in top_docs])
             response = rag_chain.invoke({"context": context, "question": user_input})
             print(response)
+            
         except KeyboardInterrupt:
             break
         except Exception:

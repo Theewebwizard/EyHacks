@@ -1,8 +1,9 @@
 import express from "express";
 import Claim from "../models/claim.model.js";
 const router = express.Router();
-import multer from 'multer'
-import path from "path"
+import multer from 'multer';
+import path from "path";
+import { getChannel } from "../lib/rabbitmq.js";
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -18,9 +19,22 @@ const upload = multer({ storage: storage });
 router.post('/upload/:claimID', upload.single('document'), async (req, res) => {
     const claim = await Claim.findOne({ claimID: req.params.claimID });
     if (claim) {
-        claim.documents.push(req.file.path);
+        const filePath = req.file.path;
+        claim.documents.push(filePath);
         await claim.save();
-        res.send('Document uploaded');
+
+        const channel = getChannel();
+        if (channel) {
+            const msg = JSON.stringify({
+                task: "verify_document",
+                claimID: claim.claimID,
+                filePath: filePath
+            });
+            channel.sendToQueue('document_processing', Buffer.from(msg));
+            console.log("Sent message to RabbitMQ:", msg);
+        }
+
+        res.send('Document uploaded and sent for processing');
     } else {
         res.status(404).send('Claim not found');
     }

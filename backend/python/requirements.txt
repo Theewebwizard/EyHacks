@@ -16,3 +16,9 @@ asyncio>=3.4.3
 fastapi>=0.115.0
 uvicorn>=0.34.0
 flask_socketio
+crewai
+langgraph
+pymongo
+pika
+pytesseract
+Pillow

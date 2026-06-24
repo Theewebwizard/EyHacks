@@ -22,17 +22,14 @@ def load_docs(directory):
         print(f"Error loading documents: {e}")
         return []
 
-def split_docs(documents, chunk_size=600, chunk_overlap=100):
-    """Splits long documents into smaller chunks for vectorization."""
+from langchain_experimental.text_splitter import SemanticChunker
+
+def split_docs(documents):
+    """Splits long documents into smaller chunks using SemanticChunker."""
     try:
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=750,
-            chunk_overlap=150,
-            separators=["\n\n## ", "\n\n- ", "\n\n", "\n", " "],
-            keep_separator=True
-        )
+        text_splitter = SemanticChunker(embeddings)
         docs = text_splitter.split_documents(documents)
-        print(f"Split documents into {len(docs)} chunks")
+        print(f"Split documents into {len(docs)} semantic chunks")
         return docs
     except Exception as e:
         print(f"Error splitting documents: {e}")

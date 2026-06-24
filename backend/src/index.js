@@ -7,8 +7,14 @@ import { connectDB } from "./lib/db.js";
 import claimRoutes from "./routes/claimRoutes.js"
 import documentRoutes from "./routes/documentRoutes.js"
 import cookieParser from "cookie-parser";
-import cron from "node-cron"
+import cron from "node-cron";
+import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { connectRedis, redisClient } from "./lib/redis.js";
+import { connectRabbitMQ } from "./lib/rabbitmq.js";
 import { spawn } from 'child_process';
+import http from 'http';
+import { Server } from 'socket.io';
 import path from 'path';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -21,6 +27,17 @@ const PORT = process.env.PORT;
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    }),
+});
+app.use("/api/", limiter);
 
 app.use(cors({
     origin: "http://localhost:5173",
@@ -42,7 +59,18 @@ cron.schedule('*/1 * * * *', () => {
 
 
 
-app.listen(PORT, () => {
-    console.log(`server is running of port ${PORT}`);
-    connectDB();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
+
+server.listen(PORT, async () => {
+    console.log(`server is running on port ${PORT}`);
+    await connectDB();
+    await connectRedis();
+    await connectRabbitMQ(io);
 });
