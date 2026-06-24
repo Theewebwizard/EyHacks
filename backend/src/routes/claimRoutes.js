@@ -5,37 +5,61 @@ import { sendClaimUpdateEmail } from "../lib/email.js";
 const router = express.Router();
 
 
-let seed = 1000; // Initial seed value for claimID
-
 // Create a new claim
 router.post('/', async (req, res) => {
-    const { clientName, claimType } = req.body;
+    try {
+        const { clientName, claimType } = req.body;
 
-    // Generate claimID based on seed
-    const claimID = `CLM-${seed++}`;
+        // Dynamically find a unique claimID
+        let claimID;
+        let isUnique = false;
+        
+        // Find the latest claim to get the next seed
+        const latestClaim = await Claim.findOne().sort({ _id: -1 });
+        let currentSeed = 1000;
+        if (latestClaim && latestClaim.claimID) {
+            const match = latestClaim.claimID.match(/CLM-(\d+)/);
+            if (match) {
+                currentSeed = parseInt(match[1], 10) + 1;
+            }
+        }
 
-    // Assign priority based on claimType
-    let priority;
-    switch (claimType) {
-        case 'medical':
-            priority = 5;
-            break;
-        case 'financial':
-            priority = 4;
-            break;
-        default:
-            priority = 1; // Default priority for other claim types
+        while (!isUnique) {
+            claimID = `CLM-${currentSeed}`;
+            const existingClaim = await Claim.findOne({ claimID });
+            if (!existingClaim) {
+                isUnique = true;
+            } else {
+                currentSeed++;
+            }
+        }
+
+        // Assign priority based on claimType
+        let priority;
+        switch (claimType) {
+            case 'medical':
+                priority = 5;
+                break;
+            case 'financial':
+                priority = 4;
+                break;
+            default:
+                priority = 1; // Default priority for other claim types
+        }
+
+        // Fetch clientSummary from another endpoint (assuming it's already available)
+        const clientSummary = "Please Initiate a call to generate client summary"; // Replace with actual fetch logic
+
+        // Create new claim
+        const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary });
+        await newClaim.save();
+
+        // Return the claimID to the frontend
+        res.status(201).send({ claimID });
+    } catch (error) {
+        console.error("Error creating claim:", error);
+        res.status(500).send({ message: error.message || "Failed to create claim" });
     }
-
-    // Fetch clientSummary from another endpoint (assuming it's already available)
-    const clientSummary = "Please Initiate a call to generate client summary"; // Replace with actual fetch logic
-
-    // Create new claim
-    const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary });
-    await newClaim.save();
-
-    // Return the claimID to the frontend
-    res.status(201).send({ claimID });
 });
 
 // Assign claims to agents
