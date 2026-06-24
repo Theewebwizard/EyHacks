@@ -26,7 +26,23 @@ const ClaimSchema = mongoose.Schema({
         type: Number,
         required: true
     },
-    documents: [{ type: String }] // Array of file paths or URLs
+    documents: [{ type: String }], // Array of file paths or URLs
+    status: {
+        type: String,
+        default: 'Pending Agent Assignment'
+    },
+    validation_status: {
+        type: String,
+        default: 'Awaiting Documents'
+    },
+    clientEmail: {
+        type: String,
+        default: 'test@example.com'
+    },
+    last_notified_at: {
+        type: Date,
+        default: null
+    }
 });
 
 const Claim = mongoose.model("Claim", ClaimSchema);

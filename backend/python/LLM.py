@@ -29,6 +29,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 model = SentenceTransformer('all-mpnet-base-v2')
 chat = ChatGroq(temperature=0, model_name="gemma2-9b-it", groq_api_key=api_key)
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+sentiment_analyzer = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion", top_k=None)
 
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["test"] # Assuming default test DB or parse from URI
@@ -117,9 +118,34 @@ compiled_graph = graph.compile()
 
 conversation_history = []
 
+def analyze_sentiment_and_emit(text: str):
+    """Analyze the text and emit an alert if negative sentiment is high."""
+    try:
+        results = sentiment_analyzer(text)
+        # Results is a list of lists of dicts: [[{'label': 'sadness', 'score': 0.9}, ...]]
+        emotions = {item['label']: item['score'] for item in results[0]}
+        
+        anger_score = emotions.get('anger', 0)
+        sadness_score = emotions.get('sadness', 0)
+        fear_score = emotions.get('fear', 0)
+        
+        # We consider negative sentiment to be anger
+        if anger_score > 0.70:
+            socketio.emit('sentiment_alert', {
+                'emotion': 'Anger/Frustration',
+                'score': round(anger_score, 2),
+                'message': 'Client appears highly frustrated! Please handle with care and escalate if necessary.'
+            })
+            print(f"🚨 SENTIMENT ALERT: Anger detected ({anger_score:.2f})")
+    except Exception as e:
+        print(f"Sentiment analysis error: {e}")
+
 def process_conversation(conversation_text):
     global conversation_history
     conversation_history.append(HumanMessage(content=conversation_text))
+    
+    # Run Sentiment Analysis asynchronously or directly
+    analyze_sentiment_and_emit(conversation_text)
     
     # Run LangGraph
     initial_state = {"messages": conversation_history, "suggestion": "", "validated": False}

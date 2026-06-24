@@ -1,6 +1,7 @@
 import express from "express";
 import Agent from "../models/agent.model.js";
 import Claim from "../models/claim.model.js";
+import { sendClaimUpdateEmail } from "../lib/email.js";
 const router = express.Router();
 
 
@@ -39,10 +40,21 @@ router.post('/', async (req, res) => {
 
 // Assign claims to agents
 router.post('/assign', async (req, res) => {
-    const claims = await Claim.find({ agentID: null });
+    // Only assign claims that are Verified, or Rejected (needs manual review)
+    // Exclude 'Awaiting Documents' and 'Pending Review' from auto-assignment to save agent capacity
+    const claims = await Claim.find({ 
+        agentID: null, 
+        validation_status: { $in: ['Verified', 'Rejected'] } 
+    }).sort({ priority: -1 }); // Sort by priority descending
+    
     const agents = await Agent.find({});
 
-    claims.forEach(async (claim) => {
+    for (let claim of claims) {
+        // If Rejected, escalate to senior agents (assuming those with higher capacity or just a specific queue, we'll assign to any available for now but mark it as high priority)
+        if (claim.validation_status === 'Rejected') {
+            claim.priority = 5; // Escalate priority
+        }
+
         const agent = agents.find(a => {
             if (claim.priority >= 3) {
                 return a.numOFhighpriorityclaims < 10;
@@ -53,6 +65,9 @@ router.post('/assign', async (req, res) => {
 
         if (agent) {
             claim.agentID = agent.agentID;
+            claim.status = "Assigned to Agent";
+            claim.last_notified_at = new Date();
+            
             if (claim.priority >= 3) {
                 agent.numOFhighpriorityclaims += 1;
             } else {
@@ -60,8 +75,16 @@ router.post('/assign', async (req, res) => {
             }
             await claim.save();
             await agent.save();
+
+            // Send Email Notification
+            await sendClaimUpdateEmail(
+                claim.clientEmail,
+                claim.clientName,
+                claim.claimID,
+                `Your claim has been assigned to an agent for review. Our team is working on it and will reach out shortly.`
+            );
         }
-    });
+    }
 
     res.send('Claims assigned');
 });

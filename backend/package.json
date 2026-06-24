@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
     "node-cron": "^3.0.3",
+    "nodemailer": "^9.0.1",
     "rate-limit-redis": "^5.0.0",
     "redis": "^6.0.0",
     "socket.io": "^4.8.3"

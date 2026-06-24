@@ -10,6 +10,8 @@ import AgentLogin from './pages/AgentLogin';
 import AgentDash from './pages/AgentDash';
 import Sidebar from './components/Sidebar';
 import RealTsuggestion from './pages/RealTsuggestion';
+import ClientLogin from './pages/ClientLogin';
+import ClientPortal from './pages/ClientPortal';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore.js';
 import { useEffect } from 'react';
@@ -44,6 +46,8 @@ const App = () => {
             path="/realTs"
             element={authAgent ? <RealTsuggestion /> : <Navigate to="/login" />}
           />
+          <Route path="/client/login" element={<ClientLogin />} />
+          <Route path="/client/dashboard" element={<ClientPortal />} />
           <Route path="/home" element={<Navigate to="/" />} />
         </Routes>
       </div>

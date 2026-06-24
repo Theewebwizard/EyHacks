@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useStore } from "../store/useStore.js";
-import { Captions, Search } from "lucide-react";
+import { Captions, Search, AlertTriangle } from "lucide-react";
+import toast from 'react-hot-toast';
 
 const socket = io("http://localhost:5000");
 
@@ -15,6 +16,7 @@ const RealTsuggestion = () => {
   const [claimType, setClaimType] = useState("");
   const [claimID, setClaimID] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false); // State to track refresh status
+  const [sentimentAlert, setSentimentAlert] = useState(null);
 
   const { searchedClaim, searchClaim } = useStore();
 
@@ -40,8 +42,16 @@ const RealTsuggestion = () => {
       startTypingEffect(formattedResponse);
     });
 
+    socket.on("sentiment_alert", (data) => {
+      setSentimentAlert(data);
+      toast.error(`SENTIMENT ALERT: ${data.message} (${data.score * 100}%)`, { duration: 6000, icon: '🚨' });
+      // Clear alert banner after 10s
+      setTimeout(() => setSentimentAlert(null), 10000);
+    });
+
     return () => {
       socket.off("new_suggestion");
+      socket.off("sentiment_alert");
     };
   }, []);
 
@@ -160,6 +170,17 @@ const RealTsuggestion = () => {
   return (
     <div className="flex flex-row justify-evenly items-center h-screen z-1 font-dmsans">
       <div className="flex flex-col h-[90%] w-[60%] ml-[4rem] mt-[6rem]">
+        {/* Sentiment Alert Banner */}
+        {sentimentAlert && (
+          <div className="w-[95%] ml-[3rem] mb-4 bg-red-900/80 border-2 border-red-500 p-4 rounded-2xl flex items-center gap-4 text-white animate-pulse shadow-[0_0_15px_#ef4444]">
+            <AlertTriangle size={32} className="text-red-400" />
+            <div>
+              <h3 className="font-bold text-xl uppercase tracking-wider text-red-200">Critical Client Sentiment: {sentimentAlert.emotion}</h3>
+              <p className="font-medium text-lg">{sentimentAlert.message}</p>
+            </div>
+          </div>
+        )}
+
         {/* Suggestions Container */}
         <div className="h-[70%] w-[95%] ml-[3rem] bg-[rgba(0,0,0,0.7)] rounded-2xl flex flex-col">
           <div className="h-[4rem] w-full bg-[rgba(0,0,0,0.8)] flex justify-between items-center pl-[0.5rem] pr-[0.5rem] rounded-t-2xl font-bold text-white">
