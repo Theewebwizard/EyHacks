@@ -30,6 +30,7 @@ router.post('/upload/:claimID', upload.single('document'), async (req, res) => {
         }
         const filePath = req.file.path;
         claim.documents.push(filePath);
+        claim.validation_status = 'Processing';
         await claim.save();
 
         const channel = getChannel();

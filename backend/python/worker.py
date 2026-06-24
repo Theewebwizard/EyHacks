@@ -17,13 +17,14 @@ def callback(ch, method, properties, body):
         task_type = msg.get("task")
         
         if task_type == "verify_document":
-            print(f"Received document verification task for claim: {msg.get('claimID')}")
+            print(f"Received document verification task for claim: {msg.get('claimID')}", flush=True)
             file_path = msg.get("filePath")
             claim_id = msg.get("claimID")
             
             # Execute CrewAI verification pipeline
+            print(f"Executing CrewAI pipeline for {claim_id} with file {file_path}...", flush=True)
             result = process_document_with_crewai(claim_id, file_path)
-            print(f"Finished processing document for claim {claim_id}")
+            print(f"Finished processing document for claim {claim_id}", flush=True)
             
             # Convert CrewOutput to a string representation if needed
             result_str = str(result)
