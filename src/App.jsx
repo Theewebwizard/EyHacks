@@ -12,6 +12,8 @@ import Sidebar from './components/Sidebar';
 import RealTsuggestion from './pages/RealTsuggestion';
 import ClientLogin from './pages/ClientLogin';
 import ClientPortal from './pages/ClientPortal';
+import ClaimsQueue from './pages/ClaimsQueue';
+import Scheduler from './pages/Scheduler';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore.js';
 import { useEffect } from 'react';
@@ -48,6 +50,8 @@ const App = () => {
           />
           <Route path="/client/login" element={<ClientLogin />} />
           <Route path="/client/dashboard" element={<ClientPortal />} />
+          <Route path="/claims" element={authAgent ? <ClaimsQueue /> : <Navigate to="/login" />} />
+          <Route path="/calendar" element={authAgent ? <Scheduler /> : <Navigate to="/login" />} />
           <Route path="/home" element={<Navigate to="/" />} />
         </Routes>
       </div>

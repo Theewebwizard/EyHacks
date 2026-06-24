@@ -15,12 +15,12 @@ const Sidebar = () => {
           <Headset />
         </button>
       </Link>
-      <Link to={"/#claims"}>
+      <Link to={"/claims"}>
         <button className="btn size-15 mb-[1rem] hover:bg-gradient-to-r from-blue-700 to-green-700">
           <FileUser />
         </button>
       </Link>
-      <Link to={"/#calendar"}>
+      <Link to={"/calendar"}>
         <button className="btn size-15 mb-[1rem] hover:bg-gradient-to-r from-blue-700 to-green-700">
           <Calendar />
         </button>

@@ -151,22 +151,54 @@ def analyze_sentiment_and_emit(text: str):
     except Exception as e:
         print(f"Sentiment analysis error: {e}")
 
+def extract_financial_details(conversation_text: str) -> dict:
+    """Extract claim amount and date from conversation using LLM."""
+    try:
+        prompt = f"""Extract financial details from this insurance call conversation. Return ONLY a JSON object with these exact keys:
+- "claim_amount": the monetary amount mentioned (e.g. "₹50,000" or "N/A" if not mentioned)
+- "incident_date": the date of incident mentioned (e.g. "15 Jan 2025" or "N/A" if not mentioned)
+- "client_summary": a 1-2 sentence summary of the client's situation
+
+Conversation:
+{conversation_text}
+
+Return ONLY valid JSON, no other text."""
+        response = chat.invoke([HumanMessage(content=prompt)])
+        import json, re
+        content = str(response.content)
+        # Extract JSON from response
+        match = re.search(r'\{.*?\}', content, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+    except Exception as e:
+        print(f"Financial extraction error: {e}")
+    return {"claim_amount": "N/A", "incident_date": "N/A", "client_summary": ""}
+
 def process_conversation(conversation_text):
     global conversation_history
     conversation_history.append(HumanMessage(content=conversation_text))
-    
-    # Run Sentiment Analysis asynchronously or directly
+
+    # Emit the raw transcription text to the frontend
+    socketio.emit('live_transcription', {'text': conversation_text})
+
+    # Run Sentiment Analysis
     analyze_sentiment_and_emit(conversation_text)
-    
+
+    # Extract financial details and emit client summary
+    financial = extract_financial_details(conversation_text)
+    if financial.get('client_summary') or financial.get('claim_amount') != 'N/A':
+        socketio.emit('client_summary', financial)
+
     # Run LangGraph
     initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
     final_state = compiled_graph.invoke(initial_state)
-    
+
     formatted_response = final_state["suggestion"]
     socketio.emit('new_suggestion', {'response': formatted_response})
-    
+
     conversation_history.append(AIMessage(content=formatted_response))
     return formatted_response
+
 
 # --- Flask Endpoints ---
 
