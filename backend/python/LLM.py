@@ -11,7 +11,8 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.tools import tool
-from typing import TypedDict, Annotated, Sequence
+from typing import Annotated, Sequence, cast, List, Dict, Any
+from typing_extensions import TypedDict
 import operator
 from dotenv import load_dotenv
 import subprocess
@@ -27,7 +28,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- Initialize Models and DB ---
 model = SentenceTransformer('all-mpnet-base-v2')
-chat = ChatGroq(temperature=0, model_name="gemma2-9b-it", groq_api_key=api_key)
+chat = ChatGroq(temperature=0, model="gemma2-9b-it", groq_api_key=api_key)  # type: ignore
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 sentiment_analyzer = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion", top_k=None)
 
@@ -98,15 +99,19 @@ def reflect(state: AgentState):
     reflection_prompt = HumanMessage(content=f"Review this suggestion for strict policy compliance and clarity:\n\n{suggestion}\n\nDoes it meet the standards? Answer YES or NO, followed by the refined suggestion if needed.")
     response = chat.invoke([reflection_prompt])
     
-    validated = "YES" in response.content.upper()
-    return {"validated": validated, "suggestion": response.content}
+    response_content = response.content
+    if isinstance(response_content, str):
+        validated = "YES" in response_content.upper()
+    else:
+        validated = "YES" in str(response_content).upper()
+    return {"validated": validated, "suggestion": response_content}
 
 def router(state: AgentState):
     if state.get("validated", False):
         return END
     return "generate"
 
-graph = StateGraph(AgentState)
+graph = StateGraph(AgentState)  # type: ignore
 graph.add_node("generate", generate_suggestion)
 graph.add_node("reflect", reflect)
 # Simplified graph without cyclical tool forcing for stability
@@ -123,11 +128,17 @@ def analyze_sentiment_and_emit(text: str):
     try:
         results = sentiment_analyzer(text)
         # Results is a list of lists of dicts: [[{'label': 'sadness', 'score': 0.9}, ...]]
-        emotions = {item['label']: item['score'] for item in results[0]}
+        emotions = {}
+        if isinstance(results, list) and len(results) > 0:
+            first_res = results[0]
+            if isinstance(first_res, list):
+                res_list = cast(List[Dict[str, Any]], first_res)
+                for item in res_list:
+                    emotions[str(item.get('label'))] = float(item.get('score', 0.0))
         
-        anger_score = emotions.get('anger', 0)
-        sadness_score = emotions.get('sadness', 0)
-        fear_score = emotions.get('fear', 0)
+        anger_score = emotions.get('anger', 0.0)
+        sadness_score = emotions.get('sadness', 0.0)
+        fear_score = emotions.get('fear', 0.0)
         
         # We consider negative sentiment to be anger
         if anger_score > 0.70:
@@ -148,7 +159,7 @@ def process_conversation(conversation_text):
     analyze_sentiment_and_emit(conversation_text)
     
     # Run LangGraph
-    initial_state = {"messages": conversation_history, "suggestion": "", "validated": False}
+    initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
     final_state = compiled_graph.invoke(initial_state)
     
     formatted_response = final_state["suggestion"]

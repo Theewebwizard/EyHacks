@@ -9,12 +9,13 @@ def process_document_with_crewai(claim_id: str, file_path: str):
     Trigger the CrewAI pipeline to process the uploaded document.
     """
     # Initialize the LLM (Groq in this case, but could be Gemini)
-    llm = ChatGroq(temperature=0, model_name="gemma2-9b-it", groq_api_key=os.getenv("API_KEY"))
+    llm = ChatGroq(temperature=0, model="gemma2-9b-it", groq_api_key=os.getenv("API_KEY"))  # type: ignore
 
     # Extract text (dummy/basic OCR implementation for the pipeline)
+    extracted_text: str = ""
     try:
         if file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
-            extracted_text = pytesseract.image_to_string(Image.open(file_path))
+            extracted_text = str(pytesseract.image_to_string(Image.open(file_path)))
         else:
             # Fallback for text/PDF or dummy read
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -22,7 +23,7 @@ def process_document_with_crewai(claim_id: str, file_path: str):
     except Exception as e:
         extracted_text = f"Error extracting text: {e}. Assume standard document content for testing."
         
-    if not extracted_text.strip():
+    if not isinstance(extracted_text, str) or not extracted_text.strip():
          extracted_text = "Standard Claim Document Content (Mocked)"
 
     # Define Agents

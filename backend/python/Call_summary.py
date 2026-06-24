@@ -8,8 +8,8 @@ from flask_cors import CORS
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
-chat = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768",
-                groq_api_key=api_key)
+chat = ChatGroq(temperature=0, model="mixtral-8x7b-32768",
+                groq_api_key=api_key)  # type: ignore
 
 app = Flask(__name__)
 CORS(app)
