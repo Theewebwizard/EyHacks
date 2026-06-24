@@ -3,6 +3,8 @@ langchain==0.3.17
 langchain-community==0.3.16
 langchain-core==0.3.33
 langchain-google-genai==2.0.9
+langchain-groq
+python-dotenv
 langchain-huggingface==0.1.2
 langchain-text-splitters==0.3.5
 langchain-experimental

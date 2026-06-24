@@ -53,6 +53,7 @@ services:
     environment:
       - PINECONE_API_KEY=${PINECONE_API_KEY}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - API_KEY=${API_KEY}
 
   realtime-voice:
     build:

@@ -2,7 +2,7 @@ import os
 from pinecone import Pinecone
 from langchain_community.vectorstores import Pinecone as LangchainPinecone
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from sentence_transformers import CrossEncoder
@@ -16,7 +16,6 @@ def initialize_pinecone():
     try:
         pinecone_api_key = os.getenv("PINECONE_API_KEY")
         pc = Pinecone(api_key=pinecone_api_key, pool_threads=8)
-        os.environ["PINECONE_API_KEY"] = pinecone_api_key
         return pc
     except Exception:
         return None
@@ -49,13 +48,15 @@ def rerank_documents(query, documents, top_k=3):
     # Return top_k documents (stripping out the score and relevance from similarity search)
     return [doc for (doc, _), score in sorted_docs[:top_k]]
 
-def initialize_gemini():
+def initialize_llm():
     try:
-        google_api_key = os.getenv("GOOGLE_API_KEY")
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+        # Use Groq (free, fast) with llama-3.1-8b-instant
+        # API_KEY is the Groq key already defined in .env
+        groq_api_key = os.getenv("API_KEY") or os.getenv("GROQ_API_KEY")
+        llm = ChatGroq(
+            model="llama-3.1-8b-instant",
             temperature=0.7,
-            google_api_key=google_api_key
+            api_key=groq_api_key
         )
         prompt_template = (
                 "You are a strict claims process validator. Answer ONLY using the provided context.\n\n"
@@ -76,8 +77,12 @@ def initialize_gemini():
         prompt = PromptTemplate.from_template(prompt_template)
         rag_chain = prompt | llm | StrOutputParser()
         return rag_chain
-    except Exception:
+    except Exception as e:
+        print(f"Failed to initialize LLM: {e}")
         return None
+
+# Keep old name as alias for backwards compat
+initialize_gemini = initialize_llm
 
 def query_interface(vector_store, rag_chain):
     while True:
