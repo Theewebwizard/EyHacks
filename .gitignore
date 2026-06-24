@@ -130,7 +130,19 @@ dist
 .pnp.*
 
 #Python
+venv
 venv/
+.venv
+.venv/
+**/venv
+**/venv/
+**/.venv
+**/.venv/
 __pycache__/
 *.pyc 
 *.pyo
+
+# IDEs and local configurations
+.vscode/
+pyrightconfig.json
+**/pyrightconfig.json

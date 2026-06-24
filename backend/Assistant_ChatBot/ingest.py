@@ -1,7 +1,7 @@
 import os
 from pinecone import Pinecone, ServerlessSpec
 from langchain_community.vectorstores import Pinecone as LangchainPinecone
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -39,6 +39,8 @@ def initialize_pinecone():
     """Initialize Pinecone with hardcoded API key."""
     try:
         pinecone_api_key = os.getenv("PINECONE_API_KEY")
+        if not pinecone_api_key:
+            raise ValueError("PINECONE_API_KEY is not set in environment variables")
         pc = Pinecone(
             api_key=pinecone_api_key,
             pool_threads=8
