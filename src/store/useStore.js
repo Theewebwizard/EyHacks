@@ -26,17 +26,17 @@ export const useStore = create((set, get) => ({
         }
     },
 
-    resolveClaim: async (claimID, agentID) => {
+    resolveClaim: async (claimID, agentID, status) => {
         try {
-            await axiosInstance.put(`/claims/resolve/${claimID}`);
-            toast.success("Claim resolved successfully!");
+            await axiosInstance.put(`/claims/resolve/${claimID}`, { status });
+            toast.success(`Claim ${status === 'Disapproved' ? 'disapproved' : 'resolved'} successfully!`);
             // Refresh claims
             if (agentID) {
                 const response = await axiosInstance.get(`/claims/agent/${agentID}`);
                 set({ claims: response.data });
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to resolve claim.");
+            toast.error(error.response?.data?.message || "Failed to update claim.");
         }
     }
 

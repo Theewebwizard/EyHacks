@@ -42,6 +42,11 @@ const ClaimSchema = mongoose.Schema({
     last_notified_at: {
         type: Date,
         default: null
+    },
+    feedback: {
+        rating: { type: Number, default: 0 },
+        comments: { type: String, default: "" },
+        submittedAt: { type: Date, default: null }
     }
 });
 

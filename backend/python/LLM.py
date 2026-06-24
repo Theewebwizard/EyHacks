@@ -28,7 +28,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- Initialize Models and DB ---
 model = SentenceTransformer('all-mpnet-base-v2')
-chat = ChatGroq(temperature=0, model="gemma2-9b-it", groq_api_key=api_key)  # type: ignore
+chat = ChatGroq(temperature=0, model="llama-3.1-8b-instant", groq_api_key=api_key)  # type: ignore
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 sentiment_analyzer = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion", top_k=None)
 
@@ -86,18 +86,36 @@ def search_policy_vectors(query: str) -> str:
 tools = [query_claim_status, search_policy_vectors]
 tool_node = ToolNode(tools)
 
+# --- Safe LLM Invocation with Retry on Rate Limits ---
+def safe_chat_invoke(messages, retries=5, delay=3):
+    import time
+    for i in range(retries):
+        try:
+            return chat.invoke(messages)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "rate_limit" in err_str or "429" in err_str:
+                print(f"⚠️ Groq rate limit hit. Waiting {delay}s before retry (attempt {i+1}/{retries})...")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                raise e
+    return chat.invoke(messages)
+
 def generate_suggestion(state: AgentState):
     """Draft a suggestion based on the conversation and tools."""
     messages = state["messages"]
+    # Keep only the last 6 messages to stay within the 6,000 Tokens Per Minute (TPM) rate limit
+    recent_messages = list(messages)[-6:]
     sys_msg = SystemMessage(content="You are a helpful BPO assistant. Use tools to look up claim status and policy vectors. Draft a clear suggestion for the agent.")
-    response = chat.invoke([sys_msg] + list(messages))
+    response = safe_chat_invoke([sys_msg] + recent_messages)
     return {"suggestion": response.content}
 
 def reflect(state: AgentState):
     """Reflect on the suggestion to ensure policy compliance."""
     suggestion = state["suggestion"]
     reflection_prompt = HumanMessage(content=f"Review this suggestion for strict policy compliance and clarity:\n\n{suggestion}\n\nDoes it meet the standards? Answer YES or NO, followed by the refined suggestion if needed.")
-    response = chat.invoke([reflection_prompt])
+    response = safe_chat_invoke([reflection_prompt])
     
     response_content = response.content
     if isinstance(response_content, str):
@@ -163,7 +181,7 @@ Conversation:
 {conversation_text}
 
 Return ONLY valid JSON, no other text."""
-        response = chat.invoke([HumanMessage(content=prompt)])
+        response = safe_chat_invoke([HumanMessage(content=prompt)])
         import json, re
         content = str(response.content)
         # Extract JSON from response
@@ -219,10 +237,14 @@ def refresh_history():
 @app.route('/start_vat', methods=['POST'])
 def start_vat():
     try:
-        subprocess.Popen(['python', 'VACT.py'])
+        import sys
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        vact_path = os.path.join(script_dir, 'VACT.py')
+        subprocess.Popen([sys.executable, vact_path])
         return jsonify({"status": "success"}), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)

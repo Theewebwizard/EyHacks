@@ -136,9 +136,10 @@ router.get('/search/:claimID', async (req, res) => {
 // Resolve claim by claim ID
 router.put('/resolve/:claimID', async (req, res) => {
     try {
+        const { status } = req.body; // e.g. "Resolved" or "Disapproved"
         const claim = await Claim.findOne({ claimID: req.params.claimID });
         if (claim) {
-            claim.status = "Resolved";
+            claim.status = status || "Resolved";
             await claim.save();
             res.status(200).send(claim);
         } else {
@@ -146,6 +147,24 @@ router.put('/resolve/:claimID', async (req, res) => {
         }
     } catch (error) {
         res.status(500).send('Error resolving claim');
+    }
+});
+
+// Submit detailed feedback for a claim
+router.put('/feedback/:claimID', async (req, res) => {
+    try {
+        const { rating, comments } = req.body;
+        const claim = await Claim.findOne({ claimID: req.params.claimID });
+        if (claim) {
+            claim.feedback = { rating: Number(rating), comments, submittedAt: new Date() };
+            await claim.save();
+            res.status(200).send(claim);
+        } else {
+            res.status(404).send('Claim not found');
+        }
+    } catch (error) {
+        console.error("Error saving feedback:", error);
+        res.status(500).send('Error submitting feedback');
     }
 });
 

@@ -52,6 +52,8 @@ app.use("/api/auth", agentAuthRoutes);
 app.use('/api/claims', claimRoutes);
 // app.use('/api/agents', agentRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 
 // Schedule the /assign endpoint to run every 5 minutes
 cron.schedule('*/1 * * * *', () => {

@@ -35,11 +35,36 @@ const ClientPortal = () => {
   const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
 
+  // Feedback state
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComments, setFeedbackComments] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
   // Chat state
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatContainerRef = useRef(null);
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!feedbackComments.trim()) {
+      return toast.error("Please enter a detailed review comment.");
+    }
+    setIsSubmittingFeedback(true);
+    try {
+      const res = await axiosInstance.put(`/claims/feedback/${claimID}`, {
+        rating: feedbackRating,
+        comments: feedbackComments.trim()
+      });
+      setClaim(res.data);
+      toast.success("Feedback submitted. Thank you!");
+    } catch (err) {
+      toast.error("Failed to submit feedback.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const claimID = localStorage.getItem('clientClaimID');
 
@@ -203,7 +228,15 @@ const ClientPortal = () => {
             </div>
 
             <div className="flex items-center gap-4 z-10">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${claim.status === 'Resolved' ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'bg-slate-700'}`}>4</div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                claim.status === 'Resolved' 
+                  ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' 
+                  : claim.status === 'Disapproved' 
+                    ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' 
+                    : 'bg-slate-700'
+              }`}>
+                {claim.status === 'Resolved' ? '✓' : claim.status === 'Disapproved' ? 'X' : '4'}
+              </div>
               <div>
                 <h3 className="text-base md:text-lg font-bold">Final Resolution</h3>
                 <p className="text-gray-400 text-xs md:text-sm">{claim.status || 'In Progress'}</p>
@@ -212,31 +245,106 @@ const ClientPortal = () => {
           </div>
         </motion.div>
 
-        {/* Upload Module */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10"
-        >
-          <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2"><FileUp className="text-blue-400"/> Upload Documents</h2>
-          <form onSubmit={handleUpload} className="flex flex-col sm:flex-row gap-4 items-center">
-            <input 
-              type="file" 
-              onChange={handleFileChange}
-              className="w-full sm:flex-1 min-h-[44px] bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 file:cursor-pointer file:transition-colors text-white cursor-pointer" 
-            />
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              type="submit" 
-              disabled={isUploading || !file}
-              className="w-full sm:w-auto bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white min-h-[44px] px-8 py-2.5 rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-500/50"
-            >
-              {isUploading ? 'Uploading...' : 'Submit'}
-            </motion.button>
-          </form>
-        </motion.div>
+        {/* Upload Module or Feedback Module */}
+        {claim.status === 'Resolved' || claim.status === 'Disapproved' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10"
+          >
+            <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-yellow-400">★</span> Share Your Experience
+            </h2>
+            <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+              Your claim is now finalized ({claim.status}). Please help us improve by rating your experience and leaving detailed feedback.
+            </p>
+
+            {claim.feedback && claim.feedback.submittedAt ? (
+              <div className="bg-slate-950/40 border border-white/10 p-4 rounded-xl space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-teal-400 bg-teal-950/40 border border-teal-500/20 px-2 py-0.5 rounded-full">Submitted</span>
+                  <div className="flex gap-0.5 text-yellow-400">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className="text-lg">
+                        {star <= claim.feedback.rating ? '★' : '☆'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-gray-300 text-sm italic">
+                  "{claim.feedback.comments}"
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+                {/* Star selection */}
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-400 font-medium">Rating:</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        onClick={() => setFeedbackRating(star)}
+                        className={`text-2xl transition-all duration-150 transform hover:scale-125 ${
+                          star <= feedbackRating ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400/50'
+                        }`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Comment box */}
+                <textarea
+                  required
+                  rows="3"
+                  value={feedbackComments}
+                  onChange={(e) => setFeedbackComments(e.target.value)}
+                  placeholder="Tell us what went well, or what we can do better..."
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-white"
+                />
+
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit" 
+                  disabled={isSubmittingFeedback || !feedbackComments.trim()}
+                  className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white min-h-[44px] rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(52,211,153,0.2)] border-0"
+                >
+                  {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </motion.button>
+              </form>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10"
+          >
+            <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2"><FileUp className="text-blue-400"/> Upload Documents</h2>
+            <form onSubmit={handleUpload} className="flex flex-col sm:flex-row gap-4 items-center">
+              <input 
+                type="file" 
+                onChange={handleFileChange}
+                className="w-full sm:flex-1 min-h-[44px] bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 file:cursor-pointer file:transition-colors text-white cursor-pointer" 
+              />
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="submit" 
+                disabled={isUploading || !file}
+                className="w-full sm:w-auto bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white min-h-[44px] px-8 py-2.5 rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-500/50"
+              >
+                {isUploading ? 'Uploading...' : 'Submit'}
+              </motion.button>
+            </form>
+          </motion.div>
+        )}
 
       </div>
 

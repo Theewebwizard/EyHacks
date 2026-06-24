@@ -116,13 +116,55 @@ const AgentDash = () => {
                       {claim.claimType}
                     </p>
                     
-                    {claim.status !== 'Resolved' && (
-                      <button 
-                        onClick={() => resolveClaim(claim.claimID, authAgent.agentID)}
-                        className="mt-3 w-full py-2 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg font-bold text-sm transition-all shadow-md"
-                      >
-                        Resolve Claim
-                      </button>
+                    {claim.documents && claim.documents.length > 0 && (
+                      <div className="mt-3 text-xs">
+                        <span className="text-gray-400 font-medium block mb-1">Attached Documents:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {claim.documents.map((doc, idx) => {
+                            const filename = doc.split(/[/\\]/).pop();
+                            return (
+                              <a
+                                key={idx}
+                                href={`http://localhost:5002/${doc}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900/60 hover:bg-slate-800 text-blue-400 hover:text-blue-300 border border-white/10 rounded transition-all truncate max-w-[180px] font-mono text-[10px]"
+                                title={filename}
+                              >
+                                📄 {filename}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {claim.status !== 'Resolved' && claim.status !== 'Disapproved' && (
+                      <div className="mt-4 flex gap-2">
+                        {claim.validation_status === 'Verified' ? (
+                          <>
+                            <button 
+                              onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Resolved')}
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all shadow-md shadow-emerald-600/20"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Disapproved')}
+                              className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold text-xs transition-all shadow-md shadow-red-600/20"
+                            >
+                              Disapprove
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            disabled
+                            className="w-full py-2 bg-slate-800/80 text-gray-500 border border-white/5 rounded-lg font-bold text-xs cursor-not-allowed text-center animate-pulse"
+                          >
+                            Awaiting AI Resolution
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))

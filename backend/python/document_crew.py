@@ -8,7 +8,7 @@ def process_document_with_crewai(claim_id: str, file_path: str):
     Trigger the CrewAI pipeline to process the uploaded document.
     """
     # Initialize the LLM using CrewAI's LLM class for litellm
-    llm = LLM(model="groq/gemma2-9b-it", api_key=os.getenv("API_KEY", ""))
+    llm = LLM(model="groq/llama-3.1-8b-instant", api_key=os.getenv("API_KEY", ""))
 
     # Extract text (dummy/basic OCR implementation for the pipeline)
     extracted_text: str = ""

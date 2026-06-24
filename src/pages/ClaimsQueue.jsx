@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SkeletonRow = () => (
   <tr className="border-b border-white/10 animate-pulse">
@@ -17,8 +17,9 @@ const SkeletonRow = () => (
 
 const ClaimsQueue = () => {
   const { authAgent } = useAuthStore();
-  const { claims, fetchClaims } = useStore();
+  const { claims, fetchClaims, resolveClaim } = useStore();
   const [loading, setLoading] = useState(true);
+  const [selectedClaim, setSelectedClaim] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -108,6 +109,7 @@ const ClaimsQueue = () => {
                     whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
                     key={claim._id} 
                     className="border-b border-white/5 transition-colors cursor-pointer group"
+                    onClick={() => setSelectedClaim(claim)}
                   >
                     <td className="p-5 font-mono text-blue-400 font-bold group-hover:text-blue-300 transition-colors">{claim.claimID}</td>
                     <td className="p-5 font-semibold text-gray-200">{claim.clientName}</td>
@@ -140,6 +142,162 @@ const ClaimsQueue = () => {
           </table>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {selectedClaim && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900/90 border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl backdrop-blur-md flex flex-col max-h-[90vh]"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center p-6 border-b border-white/10 bg-slate-950/40">
+                <div>
+                  <span className="text-xs px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full font-semibold font-mono mr-2">
+                    {selectedClaim.claimID}
+                  </span>
+                  <h2 className="text-xl font-bold text-white inline-block">Claim Details</h2>
+                </div>
+                <button
+                  onClick={() => setSelectedClaim(null)}
+                  className="text-gray-400 hover:text-white transition-colors text-2xl font-semibold leading-none"
+                >
+                  &times;
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm leading-relaxed">
+                {/* Meta info grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs">Client Name</span>
+                    <span className="text-white font-semibold">{selectedClaim.clientName}</span>
+                  </div>
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs">Client Email</span>
+                    <span className="text-white font-semibold">{selectedClaim.clientEmail || 'test@example.com'}</span>
+                  </div>
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs">Claim Type</span>
+                    <span className="text-white font-semibold capitalize">{selectedClaim.claimType}</span>
+                  </div>
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs font-semibold">Priority</span>
+                    <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-bold border ${getPriorityColor(selectedClaim.priority)}`}>
+                      Level {selectedClaim.priority}
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs">Status</span>
+                    <span className="inline-block mt-0.5 bg-blue-900/30 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded text-xs font-bold">
+                      {selectedClaim.status}
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/20 p-3 rounded-xl border border-white/5">
+                    <span className="text-gray-400 block text-xs">AI Validation</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {getValidationIcon(selectedClaim.validation_status)}
+                      <span className={`font-semibold ${
+                        selectedClaim.validation_status === 'Verified' ? 'text-green-400' :
+                        selectedClaim.validation_status === 'Rejected' ? 'text-red-400' : 'text-yellow-400'
+                      }`}>
+                        {selectedClaim.validation_status || 'Pending Review'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary / Description */}
+                <div>
+                  <h3 className="text-gray-400 font-semibold mb-2">Claim Description / Summary</h3>
+                  <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 text-gray-200 min-h-[60px]">
+                    {selectedClaim.clientSummary}
+                  </div>
+                </div>
+
+                {/* Documents */}
+                <div>
+                  <h3 className="text-gray-400 font-semibold mb-2">Attached Documents</h3>
+                  {selectedClaim.documents && selectedClaim.documents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedClaim.documents.map((doc, idx) => {
+                        const filename = doc.split(/[/\\]/).pop();
+                        return (
+                          <a
+                            key={idx}
+                            href={`http://localhost:5002/${doc}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-3 bg-slate-950/30 hover:bg-slate-950/60 border border-white/5 hover:border-blue-500/30 rounded-xl transition-all"
+                          >
+                            <span className="text-xl">📄</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-blue-400 hover:underline truncate font-mono" title={filename}>
+                                {filename}
+                              </p>
+                              <span className="text-[10px] text-gray-500">Click to open/download</span>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic p-3 bg-slate-950/20 rounded-xl border border-white/5 text-center">
+                      No documents uploaded yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-6 border-t border-white/10 bg-slate-950/40 flex justify-end gap-3">
+                <button
+                  onClick={() => setSelectedClaim(null)}
+                  className="px-4 py-2 border border-white/10 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white transition-all text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+                {selectedClaim.status !== 'Resolved' && selectedClaim.status !== 'Disapproved' && (
+                  <>
+                    {selectedClaim.validation_status === 'Verified' ? (
+                      <>
+                        <button
+                          onClick={async () => {
+                            await resolveClaim(selectedClaim.claimID, authAgent?.agentID, 'Resolved');
+                            setSelectedClaim(null);
+                          }}
+                          className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-emerald-600/20"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await resolveClaim(selectedClaim.claimID, authAgent?.agentID, 'Disapproved');
+                            setSelectedClaim(null);
+                          }}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-red-600/20"
+                        >
+                          Disapprove
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        disabled
+                        className="px-5 py-2 bg-slate-800 text-gray-500 border border-white/5 rounded-xl text-sm font-bold cursor-not-allowed text-center animate-pulse"
+                      >
+                        Awaiting AI Resolution
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
