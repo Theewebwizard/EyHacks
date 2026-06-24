@@ -36,10 +36,10 @@ def rerank_documents(query, documents, top_k=3):
         return []
     
     # Create pairs of (query, document_text)
-    pairs = [[query, doc.page_content] for doc, _ in documents]
+    pairs: list[tuple[str, str]] = [(str(query), str(doc.page_content)) for doc, _ in documents]
     
     # Score pairs
-    scores = cross_encoder.predict(pairs)
+    scores = cross_encoder.predict(pairs)  # type: ignore[call-overload]  # stubs don't cover tuple[str,str] but it works at runtime
     
     # Sort documents by score descending
     scored_docs = zip(documents, scores)
