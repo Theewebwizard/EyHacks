@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useStore } from "../store/useStore.js";
+import { axiosInstance } from "../lib/axios.js";
 import { Captions, Search, AlertTriangle } from "lucide-react";
 import toast from 'react-hot-toast';
 
@@ -68,24 +69,13 @@ const RealTsuggestion = () => {
     searchClaim(formData.claimID);
   };
 
-  // Handle form submission for new claim
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Call the backend endpoint to create a new claim
-    const response = await fetch("http://localhost:5001/api/claims", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ clientName, claimType }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      setClaimID(data.claimID);
-    } else {
-      console.error("Failed to create claim");
+    try {
+      const response = await axiosInstance.post("/claims", { clientName, claimType });
+      setClaimID(response.data.claimID);
+    } catch (error) {
+      console.error("Failed to create claim", error);
     }
   };
 

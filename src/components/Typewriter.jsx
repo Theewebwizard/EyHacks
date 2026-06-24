@@ -1,33 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Typewriter = ({ text, speed = 50, animate = true, onUpdate }) => {
   const [displayedText, setDisplayedText] = useState(animate ? '' : text);
-  const [hasAnimated, setHasAnimated] = useState(false);
-
-  // Reset state when the text or animation flag changes.
-  useEffect(() => {
-    setDisplayedText(animate ? '' : text);
-    setHasAnimated(false);
-  }, [text, animate]);
+  // Store onUpdate in a ref so it never causes the effect to re-run
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
 
   useEffect(() => {
-    if (!animate || hasAnimated) return;
+    if (!animate) {
+      setDisplayedText(text);
+      return;
+    }
+    // Reset and start fresh each time `text` changes
+    setDisplayedText('');
     let index = 0;
     const interval = setInterval(() => {
       index++;
       setDisplayedText(text.slice(0, index));
-      if (onUpdate) onUpdate();
+      if (onUpdateRef.current) onUpdateRef.current();
       if (index >= text.length) {
-        setHasAnimated(true);
         clearInterval(interval);
       }
     }, speed);
     return () => clearInterval(interval);
-  }, [text, speed, animate, onUpdate, hasAnimated]);
+    // Only restart when text/speed/animate actually change — NOT onUpdate
+  }, [text, speed, animate]);
 
-  // Helper to parse markdown: any text wrapped in ** ** becomes bold.
+  // Parse **bold** markdown
   const parseMarkdown = (input) => {
-    // Split the input based on bold markers.
     const parts = input.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
       if (/^\*\*.*\*\*$/.test(part)) {

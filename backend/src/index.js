@@ -28,21 +28,25 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+// CORS must come BEFORE rate limiter so OPTIONS preflight requests get headers
+const corsOptions = {
+    origin: "http://localhost:5173",
+    credentials: true
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight for all routes
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    max: 500, // Raised from 100 — auth/check is called on every page load
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.path === '/auth/check', // never rate-limit the auth check
     store: new RedisStore({
         sendCommand: (...args) => redisClient.sendCommand(args),
     }),
 });
 app.use("/api/", limiter);
-
-app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true
-}));
 
 app.use("/api/auth", agentAuthRoutes);
 app.use('/api/claims', claimRoutes);

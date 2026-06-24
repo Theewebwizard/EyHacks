@@ -10,7 +10,7 @@
 
 @font-face {
   font-family: Roboto;
-  src: url('../src/assets/fonts/Roboto-Regular.ttf');
+  src: url('./assets/fonts/RobotoSlab-Regular.ttf');
 }
 
 @import 'tailwindcss';

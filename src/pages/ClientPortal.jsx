@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { axiosInstance } from '../lib/axios';
 import toast from 'react-hot-toast';
@@ -42,6 +42,11 @@ const ClientPortal = () => {
 
   const claimID = localStorage.getItem('clientClaimID');
 
+  // Stable scroll-to-bottom callback — defined before any early returns (Rules of Hooks)
+  const scrollChatToBottom = useCallback(() => {
+    if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  }, []);
+
   useEffect(() => {
     if (!claimID) {
       navigate('/client/login');
@@ -59,6 +64,7 @@ const ClientPortal = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
 
   const fetchClaim = async () => {
     try {
@@ -234,9 +240,7 @@ const ClientPortal = () => {
             <div key={idx} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[85%] p-4 rounded-2xl ${msg.isBot ? 'bg-gray-800 text-white rounded-tl-none border border-gray-700' : 'bg-blue-600 text-white rounded-tr-none'}`}>
                 {msg.isBot && msg.animate ? (
-                  <Typewriter text={msg.text} speed={30} onUpdate={() => {
-                    if(chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-                  }}/>
+                  <Typewriter text={msg.text} speed={30} onUpdate={scrollChatToBottom}/>
                 ) : (
                   parseMarkdown(msg.text)
                 )}
