@@ -8,7 +8,7 @@ import GlowEffect from "../components/GlowEffect";
 
 const AgentDash = () => {
   const { authAgent } = useAuthStore();
-  const { fetchClaims, claims } = useStore();
+  const { fetchClaims, claims, resolveClaim } = useStore();
 
   useEffect(() => {
     if (authAgent && authAgent.agentID) {
@@ -115,6 +115,15 @@ const AgentDash = () => {
                       <span className="text-gray-400 font-medium mr-1">Type:</span>
                       {claim.claimType}
                     </p>
+                    
+                    {claim.status !== 'Resolved' && (
+                      <button 
+                        onClick={() => resolveClaim(claim.claimID, authAgent.agentID)}
+                        className="mt-3 w-full py-2 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-lg font-bold text-sm transition-all shadow-md"
+                      >
+                        Resolve Claim
+                      </button>
+                    )}
                   </div>
                 ))
               )}

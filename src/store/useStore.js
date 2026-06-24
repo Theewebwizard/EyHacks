@@ -24,6 +24,20 @@ export const useStore = create((set, get) => ({
             console.error('Error searching for claim:', error);
             set({ searchedClaim: null });
         }
+    },
+
+    resolveClaim: async (claimID, agentID) => {
+        try {
+            await axiosInstance.put(`/claims/resolve/${claimID}`);
+            toast.success("Claim resolved successfully!");
+            // Refresh claims
+            if (agentID) {
+                const response = await axiosInstance.get(`/claims/agent/${agentID}`);
+                set({ claims: response.data });
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to resolve claim.");
+        }
     }
 
 }));

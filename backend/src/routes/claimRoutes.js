@@ -133,4 +133,20 @@ router.get('/search/:claimID', async (req, res) => {
     }
 });
 
+// Resolve claim by claim ID
+router.put('/resolve/:claimID', async (req, res) => {
+    try {
+        const claim = await Claim.findOne({ claimID: req.params.claimID });
+        if (claim) {
+            claim.status = "Resolved";
+            await claim.save();
+            res.status(200).send(claim);
+        } else {
+            res.status(404).send('Claim not found');
+        }
+    } catch (error) {
+        res.status(500).send('Error resolving claim');
+    }
+});
+
 export default router;
