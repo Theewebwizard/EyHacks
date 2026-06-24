@@ -1,14 +1,8 @@
-import Navbar from './components/Navbar';
-import { Routes, Route, Navigate } from 'react-router-dom';
-
-import AgentHome from './pages/AgentHome';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import StatusPage from './pages/StatusPage';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import AgentSignup from './pages/AgentSignup';
 import AgentLogin from './pages/AgentLogin';
 import AgentDash from './pages/AgentDash';
-import Sidebar from './components/Sidebar';
 import RealTsuggestion from './pages/RealTsuggestion';
 import ClientLogin from './pages/ClientLogin';
 import ClientPortal from './pages/ClientPortal';
@@ -17,50 +11,59 @@ import Scheduler from './pages/Scheduler';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore.js';
 import { useEffect } from 'react';
+import Layout from './components/Layout';
+
+const PageTransition = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.3 }}
+    className="w-full h-full"
+  >
+    {children}
+  </motion.div>
+);
 
 const App = () => {
-  const { authAgent, checkAuth, isCheckingAuth } = useAuthStore();
+  const { authAgent, checkAuth } = useAuthStore();
+  const location = useLocation();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   return (
-    <div className="bg-[url('/backimg5.jpg')]">
-      <Navbar />
-      {authAgent && <Sidebar />}
-      <div className="w-full h-screen">
-        <Routes>
-          <Route
-            path="/"
-            element={authAgent ? <AgentDash /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/login"
-            element={!authAgent ? <AgentLogin /> : <Navigate to="/" />}
-          />
-
-          <Route
-            path="/signup"
-            element={!authAgent ? <AgentSignup /> : <Navigate to="/" />}
-          />
-          <Route
-            path="/realTs"
-            element={authAgent ? <RealTsuggestion /> : <Navigate to="/login" />}
-          />
-          <Route path="/client/login" element={<ClientLogin />} />
-          <Route path="/client/dashboard" element={<ClientPortal />} />
-          <Route path="/claims" element={authAgent ? <ClaimsQueue /> : <Navigate to="/login" />} />
-          <Route path="/calendar" element={authAgent ? <Scheduler /> : <Navigate to="/login" />} />
-          <Route path="/home" element={<Navigate to="/" />} />
-        </Routes>
+    <Layout>
+      <div className="w-full h-full flex-1">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route
+              path="/"
+              element={authAgent ? <PageTransition><AgentDash /></PageTransition> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/login"
+              element={!authAgent ? <PageTransition><AgentLogin /></PageTransition> : <Navigate to="/" />}
+            />
+            <Route
+              path="/signup"
+              element={!authAgent ? <PageTransition><AgentSignup /></PageTransition> : <Navigate to="/" />}
+            />
+            <Route
+              path="/realTs"
+              element={authAgent ? <PageTransition><RealTsuggestion /></PageTransition> : <Navigate to="/login" />}
+            />
+            <Route path="/client/login" element={<PageTransition><ClientLogin /></PageTransition>} />
+            <Route path="/client/dashboard" element={<PageTransition><ClientPortal /></PageTransition>} />
+            <Route path="/claims" element={authAgent ? <PageTransition><ClaimsQueue /></PageTransition> : <Navigate to="/login" />} />
+            <Route path="/calendar" element={authAgent ? <PageTransition><Scheduler /></PageTransition> : <Navigate to="/login" />} />
+            <Route path="/home" element={<Navigate to="/" />} />
+          </Routes>
+        </AnimatePresence>
       </div>
-
-      {/* <HomePage/>
-        <LoginPage/>
-        <StatusPage /> */}
       <Toaster />
-    </div>
+    </Layout>
   );
 };
 
