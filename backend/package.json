@@ -22,6 +22,7 @@
     "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
+    "multer": "^2.2.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^9.0.1",
     "rate-limit-redis": "^5.0.0",
