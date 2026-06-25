@@ -20,8 +20,8 @@ auth_token = os.getenv('TWILIO_AUTH_TOKEN', '')
 twilio_number = os.getenv('TWILIO_PHONE_NUMBER', '')
 your_jio_number = os.getenv('YOUR_PHONE_NUMBER', '')
 
-# 3. Your ngrok/localtunnel public URL for port 5000
-webhook_url = 'https://seriously-refined-shots-realize.trycloudflare.com/twilio/voice'
+# 3. Your public URL for port 5000 (Set automatically by auto_tunnel.py)
+webhook_url = os.getenv('WEBHOOK_URL', '') + '/twilio/voice'
 
 print(f"Triggering call from {twilio_number} to {your_jio_number}...")
 

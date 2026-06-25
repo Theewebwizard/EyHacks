@@ -89,7 +89,11 @@ def query_claim_status(claim_id: str) -> str:
     """Query MongoDB for the real-time status of a claim."""
     claim = claims_collection.find_one({"claimID": claim_id})
     if claim:
-        return f"Claim {claim_id} found. Type: {claim.get('claimType')}, Priority: {claim.get('priority')}."
+        result = f"Claim {claim_id} found. Type: {claim.get('claimType')}, Priority: {claim.get('priority')}."
+        doc_analysis = claim.get('documentAnalysis')
+        if doc_analysis:
+            result += f"\n\nDocument Analysis Details:\n{doc_analysis}"
+        return result
     return f"Claim {claim_id} not found in database."
 
 @tool

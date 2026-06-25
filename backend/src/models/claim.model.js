@@ -27,6 +27,10 @@ const ClaimSchema = mongoose.Schema({
         required: true
     },
     documents: [{ type: String }], // Array of file paths or URLs
+    documentAnalysis: {
+        type: String,
+        default: ""
+    },
     status: {
         type: String,
         default: 'Pending Agent Assignment'

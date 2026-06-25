@@ -52,6 +52,8 @@ export const connectRabbitMQ = async (io) => {
                     const claim = await Claim.findOne({ claimID: result.claimID });
                     if (claim) {
                         claim.validation_status = validationStatus;
+                        // Save the raw analysis from CrewAI
+                        claim.documentAnalysis = result.result || "";
                         await claim.save();
 
                         // Send Email Notification
