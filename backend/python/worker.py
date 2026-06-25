@@ -25,20 +25,25 @@ def callback(ch, method, properties, body):
             print(f"Executing CrewAI pipeline for {claim_id} with file {file_path}...", flush=True)
             try:
                 result = process_document_with_crewai(claim_id, file_path)
+                result_str = str(result)
+                
+                # Publish result back
+                result_msg = json.dumps({
+                    "claimID": claim_id,
+                    "status": "completed",
+                    "result": result_str
+                })
             except Exception as e:
-                print(f"CrewAI error: {e}. Falling back to mock result.", flush=True)
-                result = "Final decision: Approved. The document was analyzed and supports a valid claim payout."
+                print(f"CRITICAL ERROR: CrewAI verification failed: {e}", flush=True)
+                # Publish failure status back
+                result_msg = json.dumps({
+                    "claimID": claim_id,
+                    "status": "failed",
+                    "result": f"System Error during verification: {str(e)}"
+                })
+                
             print(f"Finished processing document for claim {claim_id}", flush=True)
             
-            # Convert CrewOutput to a string representation if needed
-            result_str = str(result)
-            
-            # Publish result back
-            result_msg = json.dumps({
-                "claimID": claim_id,
-                "status": "completed",
-                "result": result_str
-            })
             ch.basic_publish(
                 exchange='',
                 routing_key='verification_results',

@@ -1,12 +1,13 @@
 import nodemailer from 'nodemailer';
 
-// Mock SMTP configuration using Ethereal Email for local development
+// Production SMTP configuration
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+    host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
     auth: {
-        user: process.env.SMTP_USER || 'lennie.collier79@ethereal.email', // Replace with generated ethereal user
-        pass: process.env.SMTP_PASS || '6n9P5nKzP11QYdEwKp' // Replace with generated ethereal password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
     }
 });
 
@@ -33,9 +34,8 @@ export const sendClaimUpdateEmail = async (clientEmail, clientName, claimID, upd
 
         const info = await transporter.sendMail(mailOptions);
         console.log(`Email sent for claim ${claimID}: %s`, info.messageId);
-        console.log(`Preview URL: %s`, nodemailer.getTestMessageUrl(info));
     } catch (error) {
-        console.error(`Failed to send email for claim ${claimID}:`, error);
+        console.error(`Failed to send email for claim ${claimID}. SMTP not configured or failed:`, error.message);
     }
 };
 
@@ -97,8 +97,7 @@ export const sendTaskScheduleEmail = async (clientEmail, title, description, due
 
         const info = await transporter.sendMail(mailOptions);
         console.log(`Calendar invite sent to ${clientEmail}: %s`, info.messageId);
-        console.log(`Preview URL: %s`, nodemailer.getTestMessageUrl(info));
     } catch (error) {
-        console.error(`Failed to send calendar invite to ${clientEmail}:`, error);
+        console.error(`Failed to send calendar invite to ${clientEmail}. SMTP not configured or failed:`, error.message);
     }
 };

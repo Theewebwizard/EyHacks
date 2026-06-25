@@ -2,28 +2,29 @@ import os
 from crewai import Agent, Task, Crew, Process, LLM
 import pytesseract
 from PIL import Image
+from PyPDF2 import PdfReader
 
 def process_document_with_crewai(claim_id: str, file_path: str):
     """
     Trigger the CrewAI pipeline to process the uploaded document.
     """
-    # Initialize the LLM using CrewAI's LLM class for litellm
     llm = LLM(model="groq/llama-3.1-8b-instant", api_key=os.getenv("API_KEY", ""))
 
-    # Extract text (dummy/basic OCR implementation for the pipeline)
     extracted_text: str = ""
     try:
         if file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
             extracted_text = str(pytesseract.image_to_string(Image.open(file_path)))
+        elif file_path.lower().endswith('.pdf'):
+            reader = PdfReader(file_path)
+            extracted_text = " ".join([page.extract_text() for page in reader.pages if page.extract_text()])
         else:
-            # Fallback for text/PDF or dummy read
             with open(file_path, 'r', encoding='utf-8') as f:
                 extracted_text = f.read()
     except Exception as e:
-        extracted_text = f"Error extracting text: {e}. Assume standard document content for testing."
+        raise ValueError(f"CRITICAL ERROR: Failed to extract text from document {file_path}. Details: {e}")
         
     if not isinstance(extracted_text, str) or not extracted_text.strip():
-         extracted_text = "Standard Claim Document Content (Mocked)"
+        raise ValueError(f"CRITICAL ERROR: Extracted text is empty or invalid for document {file_path}.")
 
     # Define Agents
     ocr_specialist = Agent(
@@ -88,9 +89,5 @@ def process_document_with_crewai(claim_id: str, file_path: str):
         print(result)
         return result
     except Exception as e:
-        print(f"CrewAI execution failed: {e}. Returning mock successful result for demo.", flush=True)
-        return "Final decision: Approved. The document was analyzed and supports a valid claim payout."
-
-if __name__ == "__main__":
-    # Test script locally
-    process_document_with_crewai("CLM-1000", "dummy.txt")
+        print(f"CRITICAL ERROR: CrewAI execution failed for Claim {claim_id}: {e}", flush=True)
+        raise RuntimeError(f"CrewAI execution failed: {e}")

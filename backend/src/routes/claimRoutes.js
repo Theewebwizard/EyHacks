@@ -67,8 +67,8 @@ router.post('/', async (req, res) => {
                 priority = 1; // Default priority for other claim types
         }
 
-        // Fetch clientSummary from another endpoint (assuming it's already available)
-        const clientSummary = "Please Initiate a call to generate client summary"; // Replace with actual fetch logic
+        // Initialize an empty clientSummary
+        const clientSummary = "";
 
         // Create new claim
         const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary, clientEmail });
@@ -175,7 +175,8 @@ router.get('/search/:claimID', async (req, res) => {
             res.status(404).send('Claim not found');
         }
     } catch (error) {
-        res.status(500).send('Error searching for claim');
+        console.error("Error searching for claim:", error);
+        res.status(500).json({ error: 'Error searching for claim', details: error.message });
     }
 });
 
@@ -192,7 +193,8 @@ router.put('/resolve/:claimID', async (req, res) => {
             res.status(404).send('Claim not found');
         }
     } catch (error) {
-        res.status(500).send('Error resolving claim');
+        console.error("Error resolving claim:", error);
+        res.status(500).json({ error: 'Error resolving claim', details: error.message });
     }
 });
 
@@ -210,7 +212,7 @@ router.put('/feedback/:claimID', async (req, res) => {
         }
     } catch (error) {
         console.error("Error saving feedback:", error);
-        res.status(500).send('Error submitting feedback');
+        res.status(500).json({ error: 'Error submitting feedback', details: error.message });
     }
 });
 

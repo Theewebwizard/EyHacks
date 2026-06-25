@@ -6,20 +6,19 @@ import numpy as np
 import requests
 import datetime
 
-MOCK_MODE = False
+import sys
+
 try:
     import sounddevice as sd
 except Exception as e:
-    print(f"Sounddevice/PortAudio error: {e}. Switching to Mock Mode!")
-    MOCK_MODE = True
-    sd = None
+    print(f"FATAL ERROR: Sounddevice/PortAudio error: {e}. Audio hardware or libraries missing. Exiting.")
+    sys.exit(1)
 
 try:
     from deepgram import AsyncDeepgramClient
 except Exception as e:
-    print(f"Deepgram SDK error/incompatibility (missing AsyncDeepgramClient): {e}. Switching to Mock Mode!")
-    MOCK_MODE = True
-    AsyncDeepgramClient = None
+    print(f"FATAL ERROR: Deepgram SDK error (missing AsyncDeepgramClient): {e}. Exiting.")
+    sys.exit(1)
 
 load_dotenv()
 LLM_SERVER_IP = "127.0.0.1"  # Change this to the actual IP if running on another machine
@@ -67,9 +66,6 @@ class AudioStreamer:
         self.output_device = output_device  # Output device for playback
 
     def start(self):
-        if sd is None or MOCK_MODE:
-            print(f"[{self.label}] Stream mock started (Mock Mode active)")
-            return
         try:
             self.stream = sd.InputStream(
                 samplerate=self.sample_rate,
