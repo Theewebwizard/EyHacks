@@ -102,3 +102,34 @@ export const sendTaskScheduleEmail = async (clientEmail, title, description, due
         logger.error(`Failed to send calendar invite to ${clientEmail}. SMTP not configured or failed`, { error: error.message });
     }
 };
+
+export const sendAccountCreationEmail = async (clientEmail, tempPassword, claimID) => {
+    try {
+        const mailOptions = {
+            from: '"SAKSHAM AI Support" <support@saksham.ai>',
+            to: clientEmail,
+            subject: `Your SAKSHAM AI Portal Account & Claim ${claimID}`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Hello,</h2>
+                    <p>An agent has just filed a new claim (<strong>${claimID}</strong>) on your behalf.</p>
+                    <p>We have automatically created a secure Client Portal account for you so you can track your claim's status in real-time.</p>
+                    <div style="padding: 15px; background-color: #f3f4f6; border-left: 4px solid #10b981; margin: 20px 0;">
+                        <p><strong>Your Temporary Login Credentials:</strong></p>
+                        <p><strong>Email:</strong> ${clientEmail}</p>
+                        <p><strong>Password:</strong> ${tempPassword}</p>
+                    </div>
+                    <p>Please log in to the <a href="http://localhost:5173/client/login">Client Portal</a> and change your password immediately.</p>
+                    <br/>
+                    <p>Best regards,</p>
+                    <p><strong>SAKSHAM AI Support Team</strong></p>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        logger.info(`Account creation email sent to ${clientEmail}`, { messageId: info.messageId });
+    } catch (error) {
+        logger.error(`Failed to send account creation email to ${clientEmail}. SMTP not configured or failed`, { error: error.message });
+    }
+};

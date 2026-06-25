@@ -1,9 +1,12 @@
 import express from "express";
 import Agent from "../models/agent.model.js";
 import Claim from "../models/claim.model.js";
-import { sendClaimUpdateEmail } from "../lib/email.js";
+import { sendClaimUpdateEmail, sendAccountCreationEmail } from "../lib/email.js";
 import { protectClientRoute } from "../middlewares/auth.middleware.js";
 import { logger } from "../lib/logger.js";
+import ClientAuth from "../models/clientAuth.model.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const router = express.Router();
 
@@ -74,6 +77,34 @@ router.post('/', async (req, res) => {
         // Create new claim
         const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary, clientEmail });
         await newClaim.save();
+
+        // Auto-generate client account if it doesn't exist
+        const existingClient = await ClientAuth.findOne({ email: new RegExp('^' + clientEmail + '$', 'i') });
+        if (!existingClient) {
+            logger.info(`No existing account found for ${clientEmail}. Auto-generating account.`);
+            
+            // Generate a random 8-character password
+            const tempPassword = crypto.randomBytes(4).toString('hex');
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(tempPassword, salt);
+            
+            const newClientAuth = new ClientAuth({
+                name: clientName,
+                email: clientEmail,
+                password: hashedPassword,
+                claims: [claimID]
+            });
+            await newClientAuth.save();
+            
+            // Send email with credentials and claim ID
+            await sendAccountCreationEmail(clientEmail, tempPassword, claimID);
+        } else {
+            // If they exist, just add the claim to their account
+            if (!existingClient.claims.includes(claimID)) {
+                existingClient.claims.push(claimID);
+                await existingClient.save();
+            }
+        }
 
         // Return the claimID to the frontend
         res.status(201).send({ claimID });

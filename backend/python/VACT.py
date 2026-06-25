@@ -93,20 +93,47 @@ class AudioStreamer:
 
 
 
+async def mock_mode_loop():
+    logger.info("MOCK MODE: Simulating live transcription...")
+    mock_sentences = [
+        ("Customer", "Hi, I need to check the status of my claim."),
+        ("Agent", "I can help with that. Could you provide your claim ID?"),
+        ("Customer", "Sure, it's CLM-1234."),
+        ("Agent", "Thank you. Let me pull that up for you.")
+    ]
+    idx = 0
+    while True:
+        try:
+            await asyncio.sleep(5)
+            speaker, text = mock_sentences[idx % len(mock_sentences)]
+            log_entry = f"{speaker}: {text}\n"
+            logger.info(f"[MOCK] {log_entry.strip()}")
+            asyncio.create_task(asyncio.to_thread(emit_live_transcript, log_entry.strip()))
+            
+            with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
+                log_file.write(log_entry)
+            
+            idx += 1
+            if idx % 2 == 0:
+                conversation_text = "".join([f"{s}: {t}\n" for s, t in mock_sentences[(idx-2):idx]])
+                asyncio.create_task(asyncio.to_thread(send_to_llm, conversation_text))
+        except KeyboardInterrupt:
+            break
+
 async def main():
     agent_stream = None
     customer_stream = None
 
     if sd is None or AsyncDeepgramClient is None:
-        logger.error("Missing required libraries. Exiting.")
-        import sys
-        sys.exit(1)
+        logger.error("Missing required libraries. Falling back to Mock Mode.")
+        await mock_mode_loop()
+        return
 
     api_key = os.getenv("DEEPGRAM_API_KEY")
     if not api_key:
-        logger.error("Missing DEEPGRAM_API_KEY. Exiting.")
-        import sys
-        sys.exit(1)
+        logger.error("Missing DEEPGRAM_API_KEY. Falling back to Mock Mode.")
+        await mock_mode_loop()
+        return
 
     try:
         # Define devices (update these IDs accordingly based on your system)
@@ -259,9 +286,8 @@ async def main():
         logger.error(f"CRASH: {e}")
         import traceback
         traceback.print_exc()
-        logger.error("Mock Mode is disabled. Exiting.")
-        import sys
-        sys.exit(1)
+        logger.warning("Entering Mock Mode due to hardware/SDK failure...")
+        await mock_mode_loop()
 
 
 if __name__ == "__main__":
