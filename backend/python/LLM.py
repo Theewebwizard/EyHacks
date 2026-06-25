@@ -308,7 +308,7 @@ async def twilio_ws_handler(websocket):
         logger.error("Missing DEEPGRAM_API_KEY")
         return
         
-    dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&diarize=true"
+    dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&model=nova-2&smart_format=true&endpointing=500"
     
     async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as dg_socket:
         
