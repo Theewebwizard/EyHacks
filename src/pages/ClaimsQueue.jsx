@@ -71,8 +71,8 @@ const ClaimsQueue = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-slate-900/40 backdrop-blur-md rounded-2xl h-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col flex-1"
       >
-        <div className="overflow-x-auto w-full h-full">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+        <div className="overflow-x-auto w-full h-full custom-scrollbar">
+          <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
             <thead className="bg-slate-900/60 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-white/10">
               <tr>
                 <th className="p-5 font-bold text-gray-300 uppercase tracking-wider text-xs md:text-sm">Claim ID</th>

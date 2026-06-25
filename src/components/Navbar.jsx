@@ -43,9 +43,9 @@ const Navbar = () => {
   return (
     <>
       <div className="fixed top-0 left-0 w-full bg-slate-950/40 backdrop-blur-md border-b border-white/10 z-50">
-        <div className="pl-[6.5rem] pr-[1.5rem] md:pl-[6.5rem] h-16 flex items-center bg-transparent">
+        <div className="pl-[4.5rem] pr-[1rem] md:pl-[6.5rem] md:pr-[1.5rem] h-16 flex items-center bg-transparent">
           <div className="flex flex-row justify-between items-center w-full">
-            <div className="text-3xl font-extrabold font-dmsans bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.2)]">
+            <div className="text-xl md:text-3xl font-extrabold font-dmsans bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(52,211,153,0.2)] whitespace-nowrap truncate mr-2">
               Saksham AI
             </div>
             

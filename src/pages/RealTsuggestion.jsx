@@ -53,6 +53,7 @@ const RealTsuggestion = () => {
   
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
   const [claimType, setClaimType] = useState("");
   const [claimID, setClaimID] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -134,10 +135,12 @@ const RealTsuggestion = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axiosInstance.post("/claims", { clientName, claimType });
+      const response = await axiosInstance.post("/claims", { clientName, claimType, clientEmail });
       setClaimID(response.data.claimID);
+      toast.success("Claim created successfully!");
     } catch (error) {
       console.error("Failed to create claim", error);
+      toast.error(error.response?.data?.error || "Failed to create claim");
     }
   };
 
@@ -447,6 +450,10 @@ const RealTsuggestion = () => {
                                    <div>
                                      <label className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-2">Client Name</label>
                                      <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} className="w-full min-h-[44px] bg-white/[0.03] border border-white/10 text-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:border-white/30 transition-all text-sm backdrop-blur-md" required />
+                                   </div>
+                                   <div>
+                                     <label className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-2">Client Email</label>
+                                     <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className="w-full min-h-[44px] bg-white/[0.03] border border-white/10 text-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:border-white/30 transition-all text-sm backdrop-blur-md" placeholder="Required for account generation" required />
                                    </div>
                                    <div>
                                      <label className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-2">Claim Type</label>

@@ -27,11 +27,11 @@ const ClientLogin = () => {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/10"
+            className="bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/10"
           >
               <div className="text-center mb-8">
-                  <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent mb-2">Welcome Back</h2>
-                  <p className="text-gray-400 text-sm">Sign in to your Client Portal</p>
+                  <h2 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent mb-2">Welcome Back</h2>
+                  <p className="text-gray-400 text-xs md:text-sm">Sign in to your Client Portal</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">

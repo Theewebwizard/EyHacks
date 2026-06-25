@@ -75,13 +75,13 @@ const AgentDash = () => {
     .slice(0, 5);
 
   return (
-    <div className="w-full h-screen bg-[#060b14] relative overflow-hidden flex flex-col px-6 pt-24 pb-8 gap-6 font-dmsans">
+    <div className="w-full h-[100dvh] bg-[#060b14] relative overflow-y-auto md:overflow-hidden flex flex-col px-4 md:px-6 pt-24 pb-8 gap-6 font-dmsans">
       {/* Dynamic Background Mesh Gradients */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
       <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full ${theme.bg} blur-[120px] pointer-events-none transition-colors duration-1000`} />
       
       {/* KPI Row (Top, full width) */}
-      <div className="w-full grid grid-cols-4 gap-6 z-10">
+      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 z-10 shrink-0">
         
         {/* Active Claims Token (Dynamic Theme) */}
         <div className={`group relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-500 hover:-translate-y-1 hover:bg-white/[0.04] ${theme.border}`}>
@@ -122,10 +122,10 @@ const AgentDash = () => {
       </div>
 
       {/* 3 Equal Columns Row (Bottom, full width) */}
-      <div className="w-full flex gap-6 flex-1 min-h-0 z-10">
+      <div className="w-full flex flex-col md:flex-row gap-6 flex-1 min-h-0 z-10">
         
         {/* Claims Queue (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden min-h-[400px] md:min-h-0">
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01] shrink-0">
             <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
               <FileUser className="w-5 h-5 text-blue-400" /> Claims Pipeline
@@ -194,7 +194,7 @@ const AgentDash = () => {
         </div>
 
         {/* Feedback Queue (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden min-h-[300px] md:min-h-0">
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01] shrink-0">
             <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
               <span className="text-amber-400 text-xl">★</span> Recent Feedback
@@ -230,7 +230,7 @@ const AgentDash = () => {
         </div>
 
         {/* AI Assistant Sidebar (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden relative">
+        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden relative min-h-[500px] md:min-h-0">
           {/* Subtle glow behind the chat */}
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[60%] ${theme.bg} blur-[100px] pointer-events-none transition-colors duration-1000`} />
           

@@ -71,8 +71,8 @@ router.post('/', async (req, res) => {
                 priority = 1; // Default priority for other claim types
         }
 
-        // Initialize an empty clientSummary
-        const clientSummary = "";
+        // Initialize a placeholder clientSummary since Mongoose required validator rejects empty strings
+        const clientSummary = "Pending analysis...";
 
         // Create new claim
         const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary, clientEmail });
