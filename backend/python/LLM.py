@@ -7,9 +7,9 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 from langchain_groq import ChatGroq
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_core.tools import tool
 from typing import Annotated, Sequence, cast, List, Dict, Any, TypedDict
 import operator
@@ -80,7 +80,7 @@ if os.path.exists(index_dir):
 # --- LangGraph Setup ---
 
 class AgentState(TypedDict):
-    messages: Annotated[Sequence[HumanMessage | AIMessage | SystemMessage], operator.add]
+    messages: Annotated[Sequence[HumanMessage | AIMessage | SystemMessage | ToolMessage], operator.add]
     suggestion: str
     validated: bool
 
@@ -106,7 +106,33 @@ def search_policy_vectors(query: str) -> str:
     results = [category_text[category][i] for i in indices[0]]
     return "\n".join(results)
 
-tools = [query_claim_status, search_policy_vectors]
+@tool
+def schedule_task(title: str, description: str, due_date: str, client_email: str = "") -> str:
+    """Schedule a meeting, appointment, or task for the user/agent. 
+    due_date should be a valid ISO 8601 date string.
+    """
+    import requests
+    try:
+        payload = {
+            "title": title,
+            "description": description,
+            "dueDate": due_date,
+            "clientEmail": client_email
+        }
+        res = requests.post("http://backend-node:5001/api/tasks", json=payload)
+        if res.status_code in [200, 201]:
+            # Emit to frontend in real-time
+            try:
+                requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': res.json()})
+            except Exception:
+                pass
+            return f"Task '{title}' scheduled successfully for {due_date}."
+        else:
+            return f"Failed to schedule task: {res.text}"
+    except Exception as e:
+        return f"Error scheduling task: {e}"
+
+tools = [query_claim_status, search_policy_vectors, schedule_task]
 tool_node = ToolNode(tools)
 
 # --- Safe LLM Invocation with Retry on Rate Limits ---
@@ -150,39 +176,62 @@ def generate_suggestion(state: AgentState):
     messages = state["messages"]
     # Keep only the last 6 messages to stay within the 6,000 Tokens Per Minute (TPM) rate limit
     recent_messages = list(messages)[-6:]
-    sys_msg = SystemMessage(content="You are an AI co-pilot assisting a BPO call center agent. You are reading the live transcript of what the Agent is saying on the phone. Draft a clear, professional suggestion for what the Agent should ask, say, or do next to help the customer.")
-    response = safe_chat_invoke([sys_msg] + recent_messages)
-    return {"suggestion": response.content}
+    sys_msg = SystemMessage(content="You are an AI co-pilot assisting a BPO call center agent. You are reading the live transcript of what the Agent is saying on the phone. Draft a clear, professional suggestion for what the Agent should ask, say, or do next to help the customer. You have tools available to check claim status, search policies, and schedule meetings. If the customer wants to schedule a meeting, you MUST use the schedule_task tool. Once you use a tool, wait for the result before giving your final suggestion.")
+    
+    # Bind tools to the LLM so it knows it can call them
+    llm_with_tools = chat.bind_tools(tools)
+    
+    response = None
+    for _ in range(5):
+        try:
+            response = llm_with_tools.invoke([sys_msg] + recent_messages)
+            break
+        except Exception as e:
+            import time
+            time.sleep(3)
+    
+    if not response:
+        return {"suggestion": "Error communicating with AI.", "messages": []}
+    
+    return {"messages": [response], "suggestion": str(response.content) if not response.tool_calls else ""}
 
 def reflect(state: AgentState):
     """Reflect on the suggestion to ensure policy compliance."""
-    suggestion = state["suggestion"]
+    suggestion = state.get("suggestion", "")
+    if not suggestion:
+        return {"validated": True, "suggestion": ""}
+    
     reflection_prompt = HumanMessage(content=f"Review this suggestion for strict policy compliance and clarity:\n\n{suggestion}\n\nIf it needs improvement, rewrite it. Output ONLY the final, polished suggestion text that the agent should read. Do NOT output any introductory text, lists, explanations, or the words 'YES' or 'NO'.")
     response = safe_chat_invoke([reflection_prompt])
     
-    response_content = response.content
+    response_content = str(response.content) if hasattr(response, 'content') else str(response)
     return {"validated": True, "suggestion": response_content}
 
-def router(state: AgentState):
-    # Always end after reflection to prevent infinite generation loops if LLM outputs NO
-    return END
+def router_after_generate(state: AgentState):
+    messages = state["messages"]
+    last_message = messages[-1]
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        return "tools"
+    return "reflect"
 
 # --- LangGraph Definition ---
 workflow = StateGraph(AgentState)  # type: ignore
 workflow.add_node("generate", generate_suggestion)
+workflow.add_node("tools", tool_node)
 workflow.add_node("reflect", reflect)
 
 workflow.add_conditional_edges(
-    "reflect",
-    router,
+    "generate",
+    router_after_generate,
     {
-        END: END,
-        "generate": "generate"
+        "tools": "tools",
+        "reflect": "reflect"
     }
 )
+workflow.add_edge("tools", "generate")
+workflow.add_edge("reflect", END)
 
 workflow.set_entry_point("generate")
-workflow.add_edge("generate", "reflect")
 
 compiled_graph = workflow.compile()
 
@@ -271,10 +320,15 @@ def process_conversation(conversation_text):
         initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
         final_state = compiled_graph.invoke(initial_state)
 
-        formatted_response = final_state["suggestion"]
-        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': formatted_response}})
+        # Update history with any new messages generated during the graph execution (e.g. tool calls, tool responses)
+        new_messages = final_state["messages"][len(conversation_history):]
+        if new_messages:
+            conversation_history.extend(new_messages)
 
-        conversation_history.append(AIMessage(content=formatted_response))
+        formatted_response = final_state["suggestion"]
+        if formatted_response:
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': formatted_response}})
+
         return formatted_response
     except Exception as e:
         logger.error(f"Error in process_conversation: {e}")
@@ -303,50 +357,65 @@ def start_asyncio_loop():
 threading.Thread(target=start_asyncio_loop, daemon=True).start()
 
 async def twilio_ws_handler(websocket):
+    logger.info("=========================================")
+    logger.info("TWILIO WEBSOCKET CONNECTION INITIATED!")
+    logger.info("=========================================")
+    
     api_key = os.getenv("DEEPGRAM_API_KEY")
     if not api_key:
         logger.error("Missing DEEPGRAM_API_KEY")
         return
         
-    dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&model=nova-2&smart_format=true&endpointing=500"
+    dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&model=nova-2&smart_format=true"
     
-    async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as dg_socket:
-        
-        async def receive_from_deepgram():
-            try:
-                async for msg in dg_socket:
-                    res = json.loads(msg)
-                    if res.get("is_final"):
-                        alt = res.get("channel", {}).get("alternatives", [{}])[0]
-                        transcript = alt.get("transcript", "").strip()
-                        if transcript:
-                            speaker = 0
-                            if alt.get("words") and len(alt["words"]) > 0:
-                                speaker = alt["words"][0].get("speaker", 0)
-                            speaker_name = "Customer"
-                            log_entry = f"{speaker_name}: {transcript}"
-                            logger.info(f"Twilio Transcript: {log_entry}")
-                            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
-                            threading.Thread(target=process_conversation, args=(log_entry,)).start()
-            except Exception as e:
-                logger.error(f"Deepgram receive error: {e}")
+    try:
+        logger.info(f"Attempting to connect to Deepgram: {dg_url}")
+        async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as dg_socket:
+            logger.info("Successfully connected to Deepgram!")
+            
+            async def receive_from_deepgram():
+                logger.info("Started receiving from Deepgram...")
+                try:
+                    async for msg in dg_socket:
+                        res = json.loads(msg)
+                        if res.get("is_final"):
+                            alt = res.get("channel", {}).get("alternatives", [{}])[0]
+                            transcript = alt.get("transcript", "").strip()
+                            if transcript:
+                                speaker = 0
+                                if alt.get("words") and len(alt["words"]) > 0:
+                                    speaker = alt["words"][0].get("speaker", 0)
+                                speaker_name = "Customer"
+                                log_entry = f"{speaker_name}: {transcript}"
+                                logger.info(f"Twilio Transcript: {log_entry}")
+                                requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
+                                threading.Thread(target=process_conversation, args=(log_entry,)).start()
+                except Exception as e:
+                    logger.error(f"Deepgram receive error: {e}", exc_info=True)
 
-        # Start listening to Deepgram in the background
-        asyncio.create_task(receive_from_deepgram())
-        
-        try:
-            async for message in websocket:
-                data = json.loads(message)
-                if data["event"] == "media":
-                    chunk = base64.b64decode(data["media"]["payload"])
-                    await dg_socket.send(chunk)
-                elif data["event"] == "stop":
-                    break
-        except Exception as e:
-            logger.error(f"Twilio WS Error: {e}")
-        finally:
-            # Twilio socket closed
-            pass
+            # Start listening to Deepgram in the background
+            asyncio.create_task(receive_from_deepgram())
+            
+            try:
+                logger.info("Waiting for Twilio messages...")
+                async for message in websocket:
+                    data = json.loads(message)
+                    if data["event"] == "connected":
+                        logger.info(f"Twilio stream connected: {data}")
+                    elif data["event"] == "start":
+                        logger.info(f"Twilio stream started: {data}")
+                    elif data["event"] == "media":
+                        chunk = base64.b64decode(data["media"]["payload"])
+                        await dg_socket.send(chunk)
+                    elif data["event"] == "stop":
+                        logger.info("Twilio stream stopped by Twilio!")
+                        break
+            except Exception as e:
+                logger.error(f"Twilio WS Error: {e}", exc_info=True)
+            finally:
+                logger.info("Twilio socket finally block reached.")
+    except Exception as outer_e:
+        logger.error(f"Failed to connect to Deepgram or outer error: {outer_e}", exc_info=True)
 
 
 async def deepgram_connection_task():
@@ -484,4 +553,4 @@ def refresh_history():
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)

@@ -3,7 +3,10 @@ import { axiosInstance } from '../lib/axios';
 import { Calendar, CheckCircle2, Clock, Plus, Trash2, Sparkles, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { io } from "socket.io-client";
 import { format } from 'date-fns';
+
+const socket = io("http://localhost:5000");
 
 const Scheduler = () => {
   const [tasks, setTasks] = useState([]);
@@ -31,6 +34,23 @@ const Scheduler = () => {
 
   useEffect(() => {
     fetchTasks();
+    
+    // Listen for new tasks scheduled by the AI Agent via real-time WebSocket
+    const handleNewAiTask = (data) => {
+      setTasks(prev => {
+        if (!prev.some(t => t._id === data._id)) {
+          toast.success(`✨ AI Auto-Scheduled: ${data.title}`);
+          return [data, ...prev].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        }
+        return prev;
+      });
+    };
+    
+    socket.on("new_ai_task", handleNewAiTask);
+    
+    return () => {
+      socket.off("new_ai_task", handleNewAiTask);
+    };
   }, []);
 
   const resetForm = () => {

@@ -1,4 +1,5 @@
 import os
+# pyrefly: ignore [missing-import]
 from twilio.rest import Client
 
 def load_env():
@@ -20,7 +21,7 @@ twilio_number = os.getenv('TWILIO_PHONE_NUMBER', '')
 your_jio_number = os.getenv('YOUR_PHONE_NUMBER', '')
 
 # 3. Your ngrok/localtunnel public URL for port 5000
-webhook_url = 'https://eyhacks-5000-twilio.loca.lt/twilio/voice'
+webhook_url = 'https://seriously-refined-shots-realize.trycloudflare.com/twilio/voice'
 
 print(f"Triggering call from {twilio_number} to {your_jio_number}...")
 
