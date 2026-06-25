@@ -165,28 +165,15 @@ compiled_graph = workflow.compile()
 conversation_history = []
 
 
-# --- Main Conversation Processor ---
 def analyze_sentiment_and_emit(conversation_text):
-    """Analyze sentiment and emit it to the client via Socket.IO."""
+    """Analyze sentiment and emit an alert to the client if the sentiment is critical."""
     try:
-        prompt = f"Analyze the sentiment of the following conversation and return exactly one word: POSITIVE, NEGATIVE, or NEUTRAL.\n\nConversation:\n{conversation_text}"
-        response = safe_chat_invoke([HumanMessage(content=prompt)])
-        sentiment = cast(str, response.content).strip().upper()
-        if sentiment in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
-            socketio.emit('sentiment_update', {'sentiment': sentiment})
-        else:
-            socketio.emit('sentiment_update', {'sentiment': 'NEUTRAL'})
-    except Exception as e:
-        print(f"Sentiment analysis error: {e}")
-        socketio.emit('sentiment_update', {'sentiment': 'NEUTRAL'})
+        prompt = f"""Analyze the sentiment of this conversation. If the customer is angry, highly frustrated, or expressing distress, return a JSON object with:
+- "emotion" (e.g. "ANGRY", "FRUSTRATED")
+- "message" (a 1-sentence warning for the agent, e.g. "Customer is upset about delays. De-escalate immediately.")
+- "score" (a float from 0.0 to 1.0 indicating severity)
 
-def extract_financial_details(conversation_text):
-    """Extract financial details and return JSON structured info."""
-    try:
-        prompt = f"""Extract the following details from this conversation:
-1. claim_amount (estimated value of medical bills mentioned, e.g. "5000")
-2. incident_date (date the event occurred, e.g. "2026-06-24")
-3. client_summary (a 1-sentence summary of client's situation)
+If the sentiment is normal, positive, or neutral, return strictly empty JSON {{}}.
 
 Conversation:
 {conversation_text}
@@ -195,27 +182,53 @@ Return ONLY valid JSON, no other text."""
         response = safe_chat_invoke([HumanMessage(content=prompt)])
         import json, re
         content = str(response.content)
-        # Extract JSON from response
+        match = re.search(r'\{.*?\}', content, re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            if "message" in data and "score" in data and "emotion" in data:
+                if float(data["score"]) >= 0.5:
+                    socketio.emit('sentiment_alert', data)
+    except Exception as e:
+        print(f"Sentiment analysis error: {e}")
+
+def extract_financial_details(conversation_text):
+    """Extract financial details and return JSON structured info."""
+    try:
+        prompt = f"""Extract the following details from this conversation:
+1. claim_amount (estimated value of medical bills mentioned, e.g. "5000")
+2. incident_date (date the event occurred, e.g. "2026-06-24")
+3. client_summary (a 1-sentence summary of client's situation)
+4. tasks (an array of scheduled tasks or action items mentioned. Each task should have "title" and "dueDate" (format: YYYY-MM-DD HH:MM). If no tasks, return empty array [])
+
+Conversation:
+{conversation_text}
+
+Return ONLY valid JSON, no other text."""
+        response = safe_chat_invoke([HumanMessage(content=prompt)])
+        import json, re
+        content = str(response.content)
         match = re.search(r'\{.*?\}', content, re.DOTALL)
         if match:
             return json.loads(match.group())
     except Exception as e:
-        print(f"Financial extraction error: {e}")
-    return {"claim_amount": "N/A", "incident_date": "N/A", "client_summary": ""}
+        print(f"Extraction error: {e}")
+    return {"claim_amount": "N/A", "incident_date": "N/A", "client_summary": "", "tasks": []}
 
 def process_conversation(conversation_text):
     global conversation_history
     conversation_history.append(HumanMessage(content=conversation_text))
 
-    # We no longer emit the raw text here because it's already emitted line-by-line via /emit_transcription
-
     # Run Sentiment Analysis
     analyze_sentiment_and_emit(conversation_text)
 
     # Extract financial details and emit client summary
-    financial = extract_financial_details(conversation_text)
-    if financial.get('client_summary') or financial.get('claim_amount') != 'N/A':
-        socketio.emit('client_summary', financial)
+    extracted = extract_financial_details(conversation_text)
+    if extracted.get('client_summary') or extracted.get('claim_amount') != 'N/A':
+        socketio.emit('client_summary', extracted)
+        
+    if extracted.get('tasks') and len(extracted['tasks']) > 0:
+        for task in extracted['tasks']:
+            socketio.emit('new_ai_task', task)
 
     try:
         # Run LangGraph

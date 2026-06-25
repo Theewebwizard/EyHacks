@@ -6,6 +6,7 @@ import agentAuthRoutes from "./routes/agentAuth.routes.js";
 import { connectDB } from "./lib/db.js";
 import claimRoutes from "./routes/claimRoutes.js"
 import documentRoutes from "./routes/documentRoutes.js"
+import taskRoutes from "./routes/taskRoutes.js"
 import cookieParser from "cookie-parser";
 import cron from "node-cron";
 import rateLimit from "express-rate-limit";
@@ -50,7 +51,7 @@ app.use("/api/", limiter);
 
 app.use("/api/auth", agentAuthRoutes);
 app.use('/api/claims', claimRoutes);
-// app.use('/api/agents', agentRoutes);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 

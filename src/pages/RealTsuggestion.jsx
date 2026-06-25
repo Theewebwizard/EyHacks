@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useStore } from "../store/useStore.js";
 import { axiosInstance } from "../lib/axios.js";
@@ -68,6 +68,20 @@ const RealTsuggestion = () => {
       toast.error(`SENTIMENT ALERT: ${data.message} (${data.score * 100}%)`, { duration: 6000, icon: '🚨' });
       setTimeout(() => setSentimentAlert(null), 10000);
     });
+
+    socket.on("new_ai_task", async (data) => {
+      try {
+        const payload = {
+          title: data.title,
+          dueDate: data.dueDate,
+          isAIGenerated: true
+        };
+        await axiosInstance.post('/tasks', payload);
+        toast.success(`AI Auto-Scheduled: ${data.title}`, { icon: '📅' });
+      } catch (error) {
+        console.error("Failed to save AI task", error);
+      }
+    });
     
     // New Sockets for live transcription and summary
     socket.on("live_transcription", (data) => {
@@ -83,6 +97,7 @@ const RealTsuggestion = () => {
     return () => {
       socket.off("new_suggestion");
       socket.off("sentiment_alert");
+      socket.off("new_ai_task");
       socket.off("live_transcription");
       socket.off("client_summary");
     };
