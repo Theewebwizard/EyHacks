@@ -20,6 +20,8 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import morgan from 'morgan';
+import { logger, stream } from './lib/logger.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
@@ -29,6 +31,9 @@ const PORT = process.env.PORT;
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
+// HTTP Request logging
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms', { stream }));
 
 // CORS must come BEFORE rate limiter so OPTIONS preflight requests get headers
 const corsOptions = {
@@ -58,12 +63,12 @@ app.use('/api/documents', documentRoutes);
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 
-// Schedule the /assign endpoint to run every 5 minutes
+// Schedule the /assign endpoint to run every 1 minute
 cron.schedule('*/1 * * * *', () => {
-    console.log('Running claim assignment job...');
+    logger.debug('Running claim assignment job...');
     axios.post(`http://localhost:${PORT}/api/claims/assign`)
-        .then(response => console.log('Claims assigned:', response.data))
-        .catch(error => console.error('Error assigning claims:', error));
+        .then(response => logger.info('Claims assigned: ' + JSON.stringify(response.data)))
+        .catch(error => logger.error('Error assigning claims', { error: error.message }));
 });
 
 
@@ -78,7 +83,7 @@ const io = new Server(server, {
 });
 
 server.listen(PORT, async () => {
-    console.log(`server is running on port ${PORT}`);
+    logger.info(`Server is running on port ${PORT}`);
     await connectDB();
     await connectRedis();
     await connectRabbitMQ(io);

@@ -1,10 +1,12 @@
 import express from "express";
 import Claim from "../models/claim.model.js";
-const router = express.Router();
-import multer from 'multer';
 import path from "path";
 import fs from "fs";
 import { getChannel } from "../lib/rabbitmq.js";
+import { logger } from "../lib/logger.js";
+import multer from 'multer';
+
+const router = express.Router();
 
 const uploadDir = 'uploads/';
 if (!fs.existsSync(uploadDir)) {
@@ -23,8 +25,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post('/upload/:claimID', upload.single('document'), async (req, res) => {
-    const claim = await Claim.findOne({ claimID: req.params.claimID });
-    if (claim) {
+    try {
+        const claim = await Claim.findOne({ claimID: req.params.claimID });
+        if (!claim) {
+            return res.status(404).send('Claim not found');
+        }
         if (!req.file) {
             return res.status(400).send('No file uploaded');
         }
@@ -41,12 +46,13 @@ router.post('/upload/:claimID', upload.single('document'), async (req, res) => {
                 filePath: filePath
             });
             channel.sendToQueue('document_processing', Buffer.from(msg));
-            console.log("Sent message to RabbitMQ:", msg);
+            logger.info("Sent message to RabbitMQ for document verification", { claimID: claim.claimID });
         }
 
         res.send('Document uploaded and sent for processing');
-    } else {
-        res.status(404).send('Claim not found');
+    } catch (error) {
+        logger.error("Error processing document upload", { error: error.message });
+        res.status(500).send('Error processing document');
     }
 });
 

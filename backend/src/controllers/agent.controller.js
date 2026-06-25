@@ -2,6 +2,7 @@ import agent from "../models/agent.model.js"
 import { generateToken } from "../lib/utils.js";
 import bcrypt from "bcryptjs";
 import Agent from "../models/agent.model.js";
+import { logger } from "../lib/logger.js";
 
 export const signup = async (req, res) => {
     const { fullName, agentID, password } = req.body;
@@ -41,7 +42,7 @@ export const signup = async (req, res) => {
             res.status(400).json({ message: "Invalid agent data" });
         }
     } catch (error) {
-        console.log("Error in signup controller", error.message);
+        logger.error("Error in signup controller", { error: error.message });
         res.status(500).json({ message: "Internal server error" });
     }
 };
@@ -71,7 +72,7 @@ export const login = async (req, res) => {
 
         });
     } catch (error) {
-        console.log("error in login controller", error.message);
+        logger.error("Error in login controller", { error: error.message });
         return res.status(500).json({ message: "internal server error" });
     }
 };
@@ -82,17 +83,16 @@ export const logout = (req, res) => {
         return res.status(200).json({ message: "logged out successfully" });
 
     } catch (error) {
-        console.log("error in logout controller", error.message);
+        logger.error("Error in logout controller", { error: error.message });
         return res.status(500).json({ message: "internal server error" });
     }
 };
 
 export const checkAuth = (req, res) => {
     try {
-        console.log("Authenticated Agent:", req.agent); // Log the authenticated agent
         res.status(200).json(req.agent);
     } catch (error) {
-        console.log("Error in checkAuth controller:", error.message); // Log the error
+        logger.error("Error in checkAuth controller", { error: error.message });
         res.status(500).json({ message: "Internal server error" });
     }
 };

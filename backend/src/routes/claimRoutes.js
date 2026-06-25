@@ -3,6 +3,7 @@ import Agent from "../models/agent.model.js";
 import Claim from "../models/claim.model.js";
 import { sendClaimUpdateEmail } from "../lib/email.js";
 import { protectClientRoute } from "../middlewares/auth.middleware.js";
+import { logger } from "../lib/logger.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get('/my-claims', protectClientRoute, async (req, res) => {
 
         res.status(200).json(claims);
     } catch (error) {
-        console.error("Error fetching client claims:", error);
+        logger.error("Error fetching client claims", { error: error.message });
         res.status(500).json({ error: "Failed to fetch claims." });
     }
 });
@@ -77,7 +78,7 @@ router.post('/', async (req, res) => {
         // Return the claimID to the frontend
         res.status(201).send({ claimID });
     } catch (error) {
-        console.error("Error creating claim:", error);
+        logger.error("Error creating claim", { error: error.message });
         res.status(500).send({ error: "Failed to create claim." });
     }
 });
@@ -103,7 +104,7 @@ router.post('/client-login', async (req, res) => {
 
         res.status(200).json(claim);
     } catch (error) {
-        console.error("Client Login Error:", error);
+        logger.error("Client Login Error", { error: error.message });
         res.status(500).json({ message: "Server error during login." });
     }
 });
@@ -175,7 +176,7 @@ router.get('/search/:claimID', async (req, res) => {
             res.status(404).send('Claim not found');
         }
     } catch (error) {
-        console.error("Error searching for claim:", error);
+        logger.error("Error searching for claim", { error: error.message });
         res.status(500).json({ error: 'Error searching for claim', details: error.message });
     }
 });
@@ -193,7 +194,7 @@ router.put('/resolve/:claimID', async (req, res) => {
             res.status(404).send('Claim not found');
         }
     } catch (error) {
-        console.error("Error resolving claim:", error);
+        logger.error("Error resolving claim", { error: error.message });
         res.status(500).json({ error: 'Error resolving claim', details: error.message });
     }
 });
@@ -211,7 +212,7 @@ router.put('/feedback/:claimID', async (req, res) => {
             res.status(404).send('Claim not found');
         }
     } catch (error) {
-        console.error("Error saving feedback:", error);
+        logger.error("Error saving feedback", { error: error.message });
         res.status(500).json({ error: 'Error submitting feedback', details: error.message });
     }
 });

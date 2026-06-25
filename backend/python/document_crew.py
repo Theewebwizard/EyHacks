@@ -3,6 +3,9 @@ from crewai import Agent, Task, Crew, Process, LLM
 import pytesseract
 from PIL import Image
 from PyPDF2 import PdfReader
+from logger_config import get_logger
+
+logger = get_logger(__name__)
 
 def process_document_with_crewai(claim_id: str, file_path: str):
     """
@@ -82,12 +85,11 @@ def process_document_with_crewai(claim_id: str, file_path: str):
     )
 
     # Execute
-    print(f"Starting CrewAI document verification for Claim ID {claim_id}...", flush=True)
+    logger.info(f"Starting CrewAI document verification for Claim ID {claim_id}...")
     try:
         result = crew.kickoff()
-        print(f"--- CrewAI Final Result for Claim {claim_id} ---")
-        print(result)
+        logger.info(f"CrewAI Final Result for Claim {claim_id}:\n{result}")
         return result
     except Exception as e:
-        print(f"CRITICAL ERROR: CrewAI execution failed for Claim {claim_id}: {e}", flush=True)
+        logger.error(f"CRITICAL ERROR: CrewAI execution failed for Claim {claim_id}: {e}")
         raise RuntimeError(f"CrewAI execution failed: {e}")

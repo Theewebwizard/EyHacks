@@ -1,6 +1,7 @@
 import express from "express";
 import Task from "../models/task.model.js";
 import { sendTaskScheduleEmail } from "../lib/email.js";
+import { logger } from "../lib/logger.js";
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get('/', async (req, res) => {
         const tasks = await Task.find().sort({ dueDate: 1, createdAt: -1 });
         res.status(200).json(tasks);
     } catch (error) {
-        console.error("Error fetching tasks:", error);
+        logger.error("Error fetching tasks", { error: error.message });
         res.status(500).json({ error: "Failed to fetch tasks" });
     }
 });
@@ -41,7 +42,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(newTask);
     } catch (error) {
-        console.error("Error creating task:", error);
+        logger.error("Error creating task", { error: error.message });
         res.status(500).json({ error: "Failed to create task" });
     }
 });
@@ -80,7 +81,7 @@ router.put('/:id', async (req, res) => {
 
         res.status(200).json(task);
     } catch (error) {
-        console.error("Error updating task:", error);
+        logger.error("Error updating task", { error: error.message });
         res.status(500).json({ error: "Failed to update task" });
     }
 });
@@ -92,7 +93,7 @@ router.delete('/:id', async (req, res) => {
         if (!task) return res.status(404).json({ error: "Task not found" });
         res.status(200).json({ message: "Task deleted successfully" });
     } catch (error) {
-        console.error("Error deleting task:", error);
+        logger.error("Error deleting task", { error: error.message });
         res.status(500).json({ error: "Failed to delete task" });
     }
 });

@@ -22,11 +22,13 @@
     "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
+    "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^9.0.1",
     "rate-limit-redis": "^5.0.0",
     "redis": "^6.0.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "winston": "^3.19.0"
   }
 }

@@ -1,6 +1,7 @@
 import amqp from 'amqplib';
 import Claim from '../models/claim.model.js';
 import { sendClaimUpdateEmail } from './email.js';
+import { logger } from './logger.js';
 
 let channel = null;
 
@@ -10,14 +11,14 @@ export const connectRabbitMQ = async (io) => {
         channel = await connection.createChannel();
         await channel.assertQueue('document_processing', { durable: true });
         await channel.assertQueue('verification_results', { durable: true });
-        console.log("Connected to RabbitMQ");
+        logger.info("Connected to RabbitMQ");
 
         // Setup consumer for verification results
         channel.consume('verification_results', async (msg) => {
             if (msg !== null) {
                 try {
                     const result = JSON.parse(msg.content.toString());
-                    console.log("Received verification result:", result);
+                    logger.info("Received verification result", { claimID: result.claimID, status: result.status });
                     
                     // The result contains claimID, status, and the crewAI output
                     // Let's determine verification_status based on CrewAI output.
@@ -46,14 +47,14 @@ export const connectRabbitMQ = async (io) => {
                     io.emit('verification_update', result);
                     channel.ack(msg);
                 } catch (err) {
-                    console.error("Error processing verification result:", err);
+                    logger.error("Error processing verification result", { error: err.message });
                     channel.nack(msg, false, false);
                 }
             }
         });
 
     } catch (error) {
-        console.error("RabbitMQ connection error:", error);
+        logger.error("RabbitMQ connection error", { error: error.message });
     }
 };
 

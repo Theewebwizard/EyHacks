@@ -5,19 +5,21 @@ import asyncio
 import numpy as np
 import requests
 import datetime
-
 import sys
+from logger_config import get_logger
+
+logger = get_logger(__name__)
 
 try:
     import sounddevice as sd
 except Exception as e:
-    print(f"FATAL ERROR: Sounddevice/PortAudio error: {e}. Audio hardware or libraries missing. Exiting.")
+    logger.error(f"FATAL ERROR: Sounddevice/PortAudio error: {e}. Audio hardware or libraries missing. Exiting.")
     sys.exit(1)
 
 try:
     from deepgram import AsyncDeepgramClient
 except Exception as e:
-    print(f"FATAL ERROR: Deepgram SDK error (missing AsyncDeepgramClient): {e}. Exiting.")
+    logger.error(f"FATAL ERROR: Deepgram SDK error (missing AsyncDeepgramClient): {e}. Exiting.")
     sys.exit(1)
 
 load_dotenv()
@@ -33,18 +35,18 @@ def log_conversation(label, text):
         log.write(log_entry)
 
 def send_to_llm(conversation_text):
-    print(conversation_text)
+    logger.debug(f"Sending conversation to LLM:\n{conversation_text}")
     url = f"http://{LLM_SERVER_IP}:{LLM_PORT}/process_conversation"
     payload = {"conversation_text": conversation_text}
 
     try:
         response = requests.post(url, json=payload)
         if response.status_code == 200:
-            print("\nLLM Response for Agent:\n", response.json()["response"])
+            logger.info(f"LLM Response for Agent:\n{response.json()['response']}")
         else:
-            print("Error:", response.text)
+            logger.error(f"Error from LLM Server: {response.text}")
     except requests.exceptions.RequestException as e:
-        print("Failed to send data to LLM:", e)
+        logger.error(f"Failed to send data to LLM: {e}")
 
 def emit_live_transcript(text):
     url = f"http://{LLM_SERVER_IP}:{LLM_PORT}/emit_transcription"
@@ -77,7 +79,7 @@ class AudioStreamer:
             )
             self.stream.start()
         except Exception as e:
-            print(f"{self.label} Audio Stream Error: {e}")
+            logger.error(f"{self.label} Audio Stream Error: {e}")
             raise
 
     def _audio_callback(self, indata, frames, time, status):
@@ -96,13 +98,13 @@ async def main():
     customer_stream = None
 
     if sd is None or AsyncDeepgramClient is None:
-        print("Missing required libraries. Exiting.")
+        logger.error("Missing required libraries. Exiting.")
         import sys
         sys.exit(1)
 
     api_key = os.getenv("DEEPGRAM_API_KEY")
     if not api_key:
-        print("Missing DEEPGRAM_API_KEY. Exiting.")
+        logger.error("Missing DEEPGRAM_API_KEY. Exiting.")
         import sys
         sys.exit(1)
 
@@ -152,7 +154,7 @@ async def main():
                             sentence_buffers[label] = ""
                             
                             log_entry = f"{label}: {final_sentence}\n"
-                            print(f"[FLUSH] {log_entry.strip()}")
+                            logger.info(f"[FLUSH] {log_entry.strip()}")
                             asyncio.create_task(asyncio.to_thread(emit_live_transcript, log_entry.strip()))
                             conversation_buffer.append(log_entry)
                             with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
@@ -184,7 +186,7 @@ async def main():
                         sentence_buffers[label] = ""  # reset
                         
                         log_entry = f"{label}: {final_sentence}\n"
-                        print(log_entry.strip())
+                        logger.info(log_entry.strip())
                         
                         # Send instantly to UI without blocking the audio stream
                         asyncio.create_task(asyncio.to_thread(emit_live_transcript, log_entry.strip()))
@@ -203,7 +205,7 @@ async def main():
                             conversation_buffer.clear()  # Clear buffer after sending
 
                 except Exception as e:
-                    print(f"Processing error: {e}")
+                    logger.error(f"Processing error: {e}")
 
             # Event handlers (support both old and new SDK callback signatures)
             async def on_message_agent(*args):
@@ -216,7 +218,7 @@ async def main():
 
             async def on_error(*args):
                 error = args[0] if len(args) == 1 else args[1]
-                print(f"Deepgram error: {error}")
+                logger.error(f"Deepgram error: {error}")
 
             agent_connection.on(EventType.MESSAGE, on_message_agent)
             customer_connection.on(EventType.MESSAGE, on_message_customer)
@@ -229,7 +231,7 @@ async def main():
             flush_task = asyncio.create_task(flush_buffer_loop())
 
             try:
-                print("Start speaking... (Press Ctrl+C to stop)")
+                logger.info("Start speaking... (Press Ctrl+C to stop)")
                 while True:
                     agent_chunk, customer_chunk = await asyncio.gather(
                         agent_stream.generator().__anext__(),
@@ -239,7 +241,7 @@ async def main():
                     await customer_connection.send_media(customer_chunk)
 
             except KeyboardInterrupt:
-                print("\nStopping...")
+                logger.info("Stopping...")
             finally:
                 await agent_connection.send_finalize()
                 await customer_connection.send_finalize()
@@ -254,10 +256,10 @@ async def main():
                     customer_stream.stream.close()
 
     except Exception as e:
-        print(f"\nCRASH: {e}")
+        logger.error(f"CRASH: {e}")
         import traceback
         traceback.print_exc()
-        print("Mock Mode is disabled. Exiting.")
+        logger.error("Mock Mode is disabled. Exiting.")
         import sys
         sys.exit(1)
 
@@ -266,4 +268,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nStopped by user")
+        logger.info("Stopped by user")

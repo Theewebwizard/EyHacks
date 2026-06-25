@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { logger } from './logger.js';
 
 // Production SMTP configuration
 const transporter = nodemailer.createTransport({
@@ -33,9 +34,9 @@ export const sendClaimUpdateEmail = async (clientEmail, clientName, claimID, upd
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent for claim ${claimID}: %s`, info.messageId);
+        logger.info(`Email sent for claim ${claimID}`, { messageId: info.messageId });
     } catch (error) {
-        console.error(`Failed to send email for claim ${claimID}. SMTP not configured or failed:`, error.message);
+        logger.error(`Failed to send email for claim ${claimID}. SMTP not configured or failed`, { error: error.message });
     }
 };
 
@@ -96,8 +97,8 @@ export const sendTaskScheduleEmail = async (clientEmail, title, description, due
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Calendar invite sent to ${clientEmail}: %s`, info.messageId);
+        logger.info(`Calendar invite sent to ${clientEmail}`, { messageId: info.messageId });
     } catch (error) {
-        console.error(`Failed to send calendar invite to ${clientEmail}. SMTP not configured or failed:`, error.message);
+        logger.error(`Failed to send calendar invite to ${clientEmail}. SMTP not configured or failed`, { error: error.message });
     }
 };

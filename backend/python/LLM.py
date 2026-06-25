@@ -16,6 +16,9 @@ import operator
 from dotenv import load_dotenv
 import subprocess
 from pymongo import MongoClient
+from logger_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
@@ -96,7 +99,7 @@ def safe_chat_invoke(messages, retries=5, delay=3):
         except Exception as e:
             err_str = str(e).lower()
             if "rate_limit" in err_str or "rate limit" in err_str or "429" in err_str or "tpm" in err_str:
-                print(f"⚠️ Groq rate limit hit. Waiting {delay}s before retry (attempt {i+1}/{retries})...")
+                logger.warning(f"Groq rate limit hit. Waiting {delay}s before retry (attempt {i+1}/{retries})...")
                 time.sleep(delay)
                 delay *= 2
             else:
@@ -189,7 +192,7 @@ Return ONLY valid JSON, no other text."""
                 if float(data["score"]) >= 0.5:
                     socketio.emit('sentiment_alert', data)
     except Exception as e:
-        print(f"Sentiment analysis error: {e}")
+        logger.error(f"Sentiment analysis error: {e}")
 
 def extract_financial_details(conversation_text):
     """Extract financial details and return JSON structured info."""
@@ -211,7 +214,7 @@ Return ONLY valid JSON, no other text."""
         if match:
             return json.loads(match.group())
     except Exception as e:
-        print(f"Extraction error: {e}")
+        logger.error(f"Extraction error: {e}")
     return {"claim_amount": "N/A", "incident_date": "N/A", "client_summary": "", "tasks": []}
 
 def process_conversation(conversation_text):
@@ -241,7 +244,7 @@ def process_conversation(conversation_text):
         conversation_history.append(AIMessage(content=formatted_response))
         return formatted_response
     except Exception as e:
-        print(f"Error in process_conversation: {e}")
+        logger.error(f"Error in process_conversation: {e}")
         fallback_suggestion = f"⚠️ BPO Suggestion Draft: [Suggestion currently unavailable due to rate limit/error: {str(e)}]"
         socketio.emit('new_suggestion', {'response': fallback_suggestion})
         return fallback_suggestion

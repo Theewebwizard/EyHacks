@@ -5,6 +5,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from flask_cors import CORS
+from logger_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 api_key = os.getenv("API_KEY")
