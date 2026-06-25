@@ -13,14 +13,14 @@ logger = get_logger(__name__)
 try:
     import sounddevice as sd
 except Exception as e:
-    logger.error(f"FATAL ERROR: Sounddevice/PortAudio error: {e}. Audio hardware or libraries missing. Exiting.")
-    sys.exit(1)
+    logger.error(f"Sounddevice/PortAudio error: {e}. Audio hardware or libraries missing.")
+    sd = None
 
 try:
     from deepgram import AsyncDeepgramClient
 except Exception as e:
-    logger.error(f"FATAL ERROR: Deepgram SDK error (missing AsyncDeepgramClient): {e}. Exiting.")
-    sys.exit(1)
+    logger.error(f"Deepgram SDK error (missing AsyncDeepgramClient): {e}.")
+    AsyncDeepgramClient = None
 
 load_dotenv()
 LLM_SERVER_IP = "127.0.0.1"  # Change this to the actual IP if running on another machine

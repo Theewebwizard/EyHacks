@@ -7,11 +7,24 @@ from logger_config import get_logger
 
 logger = get_logger(__name__)
 
-def process_document_with_crewai(claim_id: str, file_path: str):
+import json
+
+def process_document_with_crewai(claim_id: str, file_path: str, channel=None):
     """
     Trigger the CrewAI pipeline to process the uploaded document.
     """
-    llm = LLM(model="groq/llama-3.1-8b-instant", api_key=os.getenv("API_KEY", ""))
+    def publish_progress(message):
+        if channel:
+            try:
+                msg = json.dumps({"claimID": claim_id, "message": f"Processing: {message}"})
+                channel.basic_publish(exchange='', routing_key='verification_progress', body=msg)
+                logger.info(f"Published progress: {message}")
+            except Exception as e:
+                logger.error(f"Failed to publish progress: {e}")
+
+    publish_progress("Booting AI Agents & reading document...")
+    os.environ["GROQ_API_KEY"] = os.getenv("API_KEY", "")
+    llm_model = "groq/llama-3.1-8b-instant"
 
     extracted_text: str = ""
     try:
@@ -36,7 +49,7 @@ def process_document_with_crewai(claim_id: str, file_path: str):
         backstory='An expert in optical character recognition and parsing unstructured data from medical and financial documents.',
         verbose=True,
         allow_delegation=False,
-        llm=llm
+        llm=llm_model
     )
 
     fraud_detector = Agent(
@@ -45,7 +58,7 @@ def process_document_with_crewai(claim_id: str, file_path: str):
         backstory='A seasoned investigator with a sharp eye for detail, specializing in catching fraudulent insurance claims.',
         verbose=True,
         allow_delegation=False,
-        llm=llm
+        llm=llm_model
     )
 
     policy_aligner = Agent(
@@ -54,26 +67,29 @@ def process_document_with_crewai(claim_id: str, file_path: str):
         backstory='A strict compliance officer who knows the company policies inside out and ensures every claim aligns with the rules.',
         verbose=True,
         allow_delegation=False,
-        llm=llm
+        llm=llm_model
     )
 
     # Define Tasks
     extract_task = Task(
         description=f"Analyze the following raw text extracted from a document for Claim ID {claim_id}. Extract the key entities (names, dates, amounts, diagnosis/financial terms).\n\nRaw Text:\n{extracted_text}",
         expected_output="A structured JSON or bulleted list of key entities found in the document.",
-        agent=ocr_specialist
+        agent=ocr_specialist,
+        callback=lambda out: publish_progress("Extracting & structuring key entities...")
     )
 
     fraud_task = Task(
         description=f"Review the structured entities extracted by the OCR Specialist for Claim ID {claim_id}. Check for logical inconsistencies (e.g., dates in the future, suspiciously round numbers, mismatched names).",
         expected_output="A fraud risk assessment report indicating 'Low', 'Medium', or 'High' risk with explanations.",
-        agent=fraud_detector
+        agent=fraud_detector,
+        callback=lambda out: publish_progress("Checking for logical inconsistencies & fraud...")
     )
 
     align_task = Task(
         description=f"Given the extracted data and the fraud assessment, determine if the document supports a valid claim payout for Claim ID {claim_id}. Output a final decision ('Approved', 'Pending Manual Review', 'Rejected').",
         expected_output="Final decision string with a brief justification.",
-        agent=policy_aligner
+        agent=policy_aligner,
+        callback=lambda out: publish_progress("Finalizing decision & generating summary...")
     )
 
     # Assemble Crew

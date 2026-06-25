@@ -27,7 +27,8 @@ def setup_vector_store():
             embedding=embeddings
         )
         return vector_store
-    except Exception:
+    except Exception as e:
+        print(f"Failed to setup vector store: {e}")
         return None
 
 def rerank_documents(query, documents, top_k=3):

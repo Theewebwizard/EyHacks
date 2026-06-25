@@ -29,10 +29,21 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- Initialize Models and DB ---
-model = SentenceTransformer('all-mpnet-base-v2')
+model = None
 chat = ChatGroq(temperature=0, model="llama-3.1-8b-instant", groq_api_key=api_key)  # type: ignore
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-sentiment_analyzer = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion", top_k=None)
+classifier = None
+sentiment_analyzer = None
+
+import threading
+def load_models():
+    global model, classifier, sentiment_analyzer
+    logger.info("Starting background download of HuggingFace models...")
+    model = SentenceTransformer('all-mpnet-base-v2')
+    classifier = pipeline("zero-shot-classification", model="typeform/distilbert-base-uncased-mnli")
+    sentiment_analyzer = pipeline("text-classification", model="bhadresh-savani/distilbert-base-uncased-emotion", top_k=None)
+    logger.info("All HuggingFace models loaded successfully!")
+
+threading.Thread(target=load_models, daemon=True).start()
 
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["test"] # Assuming default test DB or parse from URI
@@ -78,6 +89,8 @@ def search_policy_vectors(query: str) -> str:
     """Search the local FAISS vector database for policy guidelines based on a query."""
     if not category_list:
         return "No policy vectors available."
+    if classifier is None or model is None:
+        return "Models are still initializing in the background. Please try again in a few moments."
     category = classifier(query, candidate_labels=category_list)["labels"][0]
     idx = indexes[category]
     query_embeddings = model.encode([query])

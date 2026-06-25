@@ -11,7 +11,27 @@ export const connectRabbitMQ = async (io) => {
         channel = await connection.createChannel();
         await channel.assertQueue('document_processing', { durable: true });
         await channel.assertQueue('verification_results', { durable: true });
+        await channel.assertQueue('verification_progress', { durable: true });
         logger.info("Connected to RabbitMQ");
+
+        // Setup consumer for verification progress
+        channel.consume('verification_progress', async (msg) => {
+            if (msg !== null) {
+                try {
+                    const progress = JSON.parse(msg.content.toString());
+                    const claim = await Claim.findOne({ claimID: progress.claimID });
+                    if (claim && !['Verified', 'Rejected'].includes(claim.validation_status)) {
+                        claim.validation_status = progress.message;
+                        await claim.save();
+                        io.emit('verification_update', { claimID: claim.claimID, validation_status: progress.message });
+                    }
+                    channel.ack(msg);
+                } catch (err) {
+                    logger.error("Error processing progress", { error: err.message });
+                    channel.nack(msg, false, false);
+                }
+            }
+        });
 
         // Setup consumer for verification results
         channel.consume('verification_results', async (msg) => {

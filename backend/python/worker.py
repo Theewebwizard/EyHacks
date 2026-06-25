@@ -27,7 +27,7 @@ def callback(ch, method, properties, body):
             # Execute CrewAI verification pipeline
             logger.info(f"Executing CrewAI pipeline for {claim_id} with file {file_path}...")
             try:
-                result = process_document_with_crewai(claim_id, file_path)
+                result = process_document_with_crewai(claim_id, file_path, ch)
                 result_str = str(result)
                 
                 # Publish result back

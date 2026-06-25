@@ -49,6 +49,20 @@ const ClientPortal = () => {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatContainerRef = useRef(null);
+  
+  // AI Processing progress state
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (claim?.validation_status?.startsWith('Processing')) {
+      const interval = setInterval(() => {
+        setProgress(p => (p >= 99 ? 99 : p + 1));
+      }, 150);
+      return () => clearInterval(interval);
+    } else {
+      setProgress(0);
+    }
+  }, [claim?.validation_status]);
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
@@ -235,8 +249,32 @@ const ClientPortal = () => {
                 {claim.validation_status === 'Verified' ? '✓' : claim.validation_status === 'Rejected' ? 'X' : '3'}
               </div>
               <div>
-                <h3 className="text-base md:text-lg font-bold">AI Verification</h3>
-                <p className="text-gray-400 text-xs md:text-sm">{claim.validation_status || 'Pending Review'}</p>
+                <h3 className="text-base md:text-lg font-bold flex items-center gap-2">
+                  AI Verification
+                  {claim.validation_status?.startsWith('Processing') && (
+                    <span className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></div>
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping" style={{animationDelay: '0.4s'}}></div>
+                    </span>
+                  )}
+                </h3>
+                <p className="text-gray-400 text-xs md:text-sm">
+                  {claim.validation_status?.startsWith('Processing') 
+                    ? 'CrewAI Agents are actively analyzing your document...' 
+                    : claim.validation_status || 'Pending Review'}
+                </p>
+                {claim.validation_status?.startsWith('Processing') && (
+                  <div className="mt-3 p-3 bg-slate-950/50 rounded-xl border border-blue-500/20 text-xs text-blue-300 font-mono flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-400 text-xs animate-spin inline-block">⟳</span> 
+                      {claim.validation_status.replace('Processing:', '').trim() || 'Initializing AI pipeline...'}
+                    </div>
+                    <div className="font-bold text-emerald-400">
+                      {progress}%
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

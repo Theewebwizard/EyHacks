@@ -85,25 +85,22 @@ router.post('/', async (req, res) => {
             
             // Generate a random 8-character password
             const tempPassword = crypto.randomBytes(4).toString('hex');
+            logger.info(`DEV OVERRIDE: Auto-generated password for ${clientEmail} is: ${tempPassword}`);
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(tempPassword, salt);
             
             const newClientAuth = new ClientAuth({
-                name: clientName,
+                fullName: clientName,
                 email: clientEmail,
-                password: hashedPassword,
-                claims: [claimID]
+                password: hashedPassword
             });
             await newClientAuth.save();
             
             // Send email with credentials and claim ID
             await sendAccountCreationEmail(clientEmail, tempPassword, claimID);
         } else {
-            // If they exist, just add the claim to their account
-            if (!existingClient.claims.includes(claimID)) {
-                existingClient.claims.push(claimID);
-                await existingClient.save();
-            }
+            // If they exist, we do nothing to the auth object since claims are fetched by email.
+            logger.info(`Account already exists for ${clientEmail}. Claim mapped successfully.`);
         }
 
         // Return the claimID to the frontend
