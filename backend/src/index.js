@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import agentAuthRoutes from "./routes/agentAuth.routes.js";
+import clientAuthRoutes from "./routes/clientAuth.routes.js";
 import { connectDB } from "./lib/db.js";
 import claimRoutes from "./routes/claimRoutes.js"
 import documentRoutes from "./routes/documentRoutes.js"
@@ -50,6 +51,7 @@ const limiter = rateLimit({
 app.use("/api/", limiter);
 
 app.use("/api/auth", agentAuthRoutes);
+app.use("/api/client-auth", clientAuthRoutes);
 app.use('/api/claims', claimRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/documents', documentRoutes);

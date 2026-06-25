@@ -2,13 +2,33 @@ import express from "express";
 import Agent from "../models/agent.model.js";
 import Claim from "../models/claim.model.js";
 import { sendClaimUpdateEmail } from "../lib/email.js";
+import { protectClientRoute } from "../middlewares/auth.middleware.js";
+
 const router = express.Router();
+
+// Get all claims for the logged in client
+router.get('/my-claims', protectClientRoute, async (req, res) => {
+    try {
+        const claims = await Claim.find({ 
+            clientEmail: new RegExp('^' + req.client.email + '$', 'i') 
+        }).sort({ createdAt: -1 });
+
+        res.status(200).json(claims);
+    } catch (error) {
+        console.error("Error fetching client claims:", error);
+        res.status(500).json({ error: "Failed to fetch claims." });
+    }
+});
 
 
 // Create a new claim
 router.post('/', async (req, res) => {
     try {
-        const { clientName, claimType } = req.body;
+        const { clientName, claimType, clientEmail } = req.body;
+        
+        if (!clientEmail) {
+             return res.status(400).json({ error: "clientEmail is required to create a claim." });
+        }
 
         // Dynamically find a unique claimID
         let claimID;
@@ -51,14 +71,40 @@ router.post('/', async (req, res) => {
         const clientSummary = "Please Initiate a call to generate client summary"; // Replace with actual fetch logic
 
         // Create new claim
-        const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary });
+        const newClaim = new Claim({ claimID, clientName, claimType, priority, clientSummary, clientEmail });
         await newClaim.save();
 
         // Return the claimID to the frontend
         res.status(201).send({ claimID });
     } catch (error) {
         console.error("Error creating claim:", error);
-        res.status(500).send({ message: error.message || "Failed to create claim" });
+        res.status(500).send({ error: "Failed to create claim." });
+    }
+});
+
+// Secure Client Login (2-Factor Verification)
+router.post('/client-login', async (req, res) => {
+    try {
+        const { claimID, clientEmail } = req.body;
+        
+        if (!claimID || !clientEmail) {
+            return res.status(400).json({ message: "Both Claim ID and Registered Email are required." });
+        }
+
+        // Must match BOTH strictly (case-insensitive for email, strict for claimID)
+        const claim = await Claim.findOne({ 
+            claimID: claimID.toUpperCase(), 
+            clientEmail: new RegExp('^' + clientEmail + '$', 'i')
+        });
+
+        if (!claim) {
+            return res.status(401).json({ message: "Access Denied: Invalid Claim ID or Email." });
+        }
+
+        res.status(200).json(claim);
+    } catch (error) {
+        console.error("Client Login Error:", error);
+        res.status(500).json({ message: "Server error during login." });
     }
 });
 

@@ -37,7 +37,7 @@ const ClaimSchema = mongoose.Schema({
     },
     clientEmail: {
         type: String,
-        default: 'test@example.com'
+        required: true
     },
     last_notified_at: {
         type: Date,

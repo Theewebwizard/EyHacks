@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { axiosInstance } from '../lib/axios';
+import { useClientAuthStore } from '../store/useClientAuthStore';
 import toast from 'react-hot-toast';
-import { FileUp, MessageSquare, LogOut, FileText } from 'lucide-react';
+import { FileUp, MessageSquare, LogOut, FileText, ArrowLeft } from 'lucide-react';
 import Typewriter from '../components/Typewriter';
 import { motion } from 'framer-motion';
 
@@ -30,6 +31,9 @@ const parseMarkdown = (input) => {
 };
 
 const ClientPortal = () => {
+  const { claimID } = useParams();
+  const { authClient, logout } = useClientAuthStore();
+  
   const [claim, setClaim] = useState(null);
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -66,21 +70,23 @@ const ClientPortal = () => {
     }
   };
 
-  const claimID = localStorage.getItem('clientClaimID');
-
   const scrollChatToBottom = useCallback(() => {
     if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
   }, []);
 
   useEffect(() => {
-    if (!claimID) {
+    if (!authClient) {
       navigate('/client/login');
+      return;
+    }
+    if (!claimID) {
+      navigate('/client/dashboard');
       return;
     }
     fetchClaim();
     const interval = setInterval(fetchClaim, 5000);
     return () => clearInterval(interval);
-  }, [claimID]);
+  }, [authClient, claimID]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -90,17 +96,18 @@ const ClientPortal = () => {
 
   const fetchClaim = async () => {
     try {
+      // Secure check to ensure the claim matches
       const res = await axiosInstance.get(`/claims/search/${claimID}`);
       setClaim(res.data);
     } catch (err) {
       console.error(err);
       if (!claim) toast.error('Error fetching claim details');
+      navigate('/client/dashboard');
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('clientClaimID');
-    navigate('/client/login');
+    logout();
   };
 
   const handleFileChange = (e) => {
@@ -171,11 +178,17 @@ const ClientPortal = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 flex justify-between items-center"
+          className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(20,184,166,0.3)]">Client Portal</h1>
-            <p className="text-gray-300 mt-1 text-sm md:text-base">Welcome, <span className="font-semibold text-white">{claim.clientName}</span></p>
+            <div className="flex items-center gap-2 mb-1">
+              <button onClick={() => navigate('/client/dashboard')} className="text-gray-400 hover:text-white transition-colors mr-2">
+                <ArrowLeft size={20} />
+              </button>
+              <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(20,184,166,0.3)]">Client Portal</h1>
+            </div>
+            <p className="text-gray-300 mt-1 text-sm md:text-base ml-8">Welcome, <span className="font-semibold text-white">{claim.clientName}</span></p>
+            <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1 ml-8">✉️ {authClient?.email}</p>
           </div>
           <motion.button 
             whileHover={{ scale: 1.05 }}
