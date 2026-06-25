@@ -162,17 +162,21 @@ async def main():
                         
                         log_entry = f"{label}: {final_sentence}\n"
                         print(log_entry.strip())
-                        emit_live_transcript(log_entry.strip())  # Send instantly to UI
+                        
+                        # Send instantly to UI without blocking the audio stream
+                        asyncio.create_task(asyncio.to_thread(emit_live_transcript, log_entry.strip()))
+                        
                         conversation_buffer.append(log_entry)
 
                         # Append to log file
                         with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
                             log_file.write(log_entry)
 
-                        # Send to LLM after 2 conversation chunks for faster RTS updates
+                        # Send to LLM after 2 conversation chunks
                         if len(conversation_buffer) >= 2:
                             conversation_text = "\n".join(conversation_buffer)
-                            send_to_llm(conversation_text)  # Send transcription to LLM API
+                            # Run heavy LLM request in background thread
+                            asyncio.create_task(asyncio.to_thread(send_to_llm, conversation_text))
                             conversation_buffer.clear()  # Clear buffer after sending
 
                 except Exception as e:

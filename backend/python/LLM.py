@@ -144,10 +144,8 @@ def reflect(state: AgentState):
     return {"validated": validated, "suggestion": response_content}
 
 def router(state: AgentState):
-    if state.get("validated", False):
-        return END
-    return "generate"
-
+    # Always end after reflection to prevent infinite generation loops if LLM outputs NO
+    return END
 
 # --- LangGraph Definition ---
 workflow = StateGraph(AgentState)  # type: ignore
