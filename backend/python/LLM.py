@@ -185,28 +185,40 @@ conversation_history = []
 
 
 def analyze_sentiment_and_emit(conversation_text):
-    """Analyze sentiment and emit an alert to the client if the sentiment is critical."""
+    """Analyze sentiment using local ML model and emit an alert to the client if the sentiment is critical."""
     try:
-        prompt = f"""Analyze the sentiment of this conversation. If the customer is angry, highly frustrated, or expressing distress, return a JSON object with:
-- "emotion" (e.g. "ANGRY", "FRUSTRATED")
-- "message" (a 1-sentence warning for the agent, e.g. "Customer is upset about delays. De-escalate immediately.")
-- "score" (a float from 0.0 to 1.0 indicating severity)
-
-If the sentiment is normal, positive, or neutral, return strictly empty JSON {{}}.
-
-Conversation:
-{conversation_text}
-
-Return ONLY valid JSON, no other text."""
-        response = safe_chat_invoke([HumanMessage(content=prompt)])
-        import json, re
-        content = str(response.content)
-        match = re.search(r'\{.*?\}', content, re.DOTALL)
-        if match:
-            data = json.loads(match.group())
-            if "message" in data and "score" in data and "emotion" in data:
-                if float(data["score"]) >= 0.5:
-                    socketio.emit('sentiment_alert', data)
+        if sentiment_analyzer is None:
+            return # Model not loaded yet
+            
+        results = sentiment_analyzer(conversation_text)[0]
+        
+        # We look for negative emotions: anger, fear, sadness
+        critical_emotions = ["anger", "fear", "sadness"]
+        highest_critical = None
+        highest_score = 0.0
+        
+        for emotion_data in results:
+            if emotion_data['label'] in critical_emotions and emotion_data['score'] > highest_score:
+                highest_score = emotion_data['score']
+                highest_critical = emotion_data['label']
+                
+        if highest_critical and highest_score >= 0.5:
+            # Map the local model label to our UI payload format
+            emotion_label = highest_critical.upper()
+            message = ""
+            if highest_critical == "anger":
+                message = "Customer is expressing anger. Please de-escalate."
+            elif highest_critical == "fear":
+                message = "Customer is expressing fear or distress. Please reassure them."
+            elif highest_critical == "sadness":
+                message = "Customer is expressing sadness. Show empathy."
+                
+            data = {
+                "emotion": emotion_label,
+                "message": message,
+                "score": highest_score
+            }
+            socketio.emit('sentiment_alert', data)
     except Exception as e:
         logger.error(f"Sentiment analysis error: {e}")
 
