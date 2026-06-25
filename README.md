@@ -25,14 +25,15 @@ This project consists of several microservices orchestrated via Docker Compose:
 
 ## 🛠 Features
 
-* **Real-time Conversational Voice AI**: Call the Twilio number and converse with an AI agent capable of scheduling tasks and querying claim databases in real-time.
-* **Live Dashboard Syncing**: As the voice AI talks to the client on the phone, the conversation transcript is dynamically streamed to the React dashboard in real-time using Socket.IO.
-* **Automated Document Underwriting**: Any document uploaded to a claim is securely processed by autonomous CrewAI agents in the background, and their full analysis is seamlessly integrated into the Voice AI's knowledge base.
-* **Intelligent Network Routing**: The `auto_tunnel.py` daemon ensures that Twilio can seamlessly hit your local services without you ever needing to configure manual NAT/Firewall port forwarding.
+- **Real-time Conversational Voice AI**: Call the Twilio number and converse with an AI agent capable of scheduling tasks and querying claim databases in real-time.
+- **Live Dashboard Syncing**: As the voice AI talks to the client on the phone, the conversation transcript is dynamically streamed to the React dashboard in real-time using Socket.IO.
+- **Automated Document Underwriting**: Any document uploaded to a claim is securely processed by autonomous CrewAI agents in the background, and their full analysis is seamlessly integrated into the Voice AI's knowledge base.
+- **Intelligent Network Routing**: The `auto_tunnel.py` daemon ensures that Twilio can seamlessly hit your local services without you ever needing to configure manual NAT/Firewall port forwarding.
 
 ## ⚙️ Project Setup
 
 ### 1. Prerequisites
+
 - Docker & Docker Compose
 - Node.js (v18+)
 - Python 3.12+
@@ -41,7 +42,9 @@ This project consists of several microservices orchestrated via Docker Compose:
 - LLM API Keys (Groq, OpenAI, etc.)
 
 ### 2. Environment Variables
+
 Create a `.env` file in the root directory (where `docker-compose.yml` is).
+
 ```env
 # Twilio
 TWILIO_ACCOUNT_SID=your_sid
@@ -65,6 +68,7 @@ SMTP_PASS=your_app_password
 ```
 
 ### 3. Start the Backend Infrastructure
+
 The system uses Docker Compose to orchestrate MongoDB, RabbitMQ, Redis, Node, and the Python services.
 
 ```bash
@@ -72,6 +76,7 @@ docker compose up -d
 ```
 
 ### 4. Enable External Voice Traffic (Twilio Webhooks)
+
 Because Twilio needs to hit your machine from the public internet to deliver phone calls, run the auto-tunneling script. This script will automatically spin up Cloudflare edge tunnels and configure your Twilio account for you:
 
 ```bash
@@ -83,20 +88,26 @@ pip install -r backend/python/requirements.txt
 # Run the tunnel daemon
 python3 auto_tunnel.py
 ```
-*(Leave this script running in a separate terminal window)*
+
+> **Note**: Leave this script running in a separate terminal window.
 
 ### 5. Run the Frontend
+
 To boot the React Dashboard for the human agents:
 
 ```bash
 npm install
 npm run dev
 ```
+
 Navigate to `http://localhost:5173` to access the dashboard.
 
 ## 🚀 Triggering a Test Call
+
 Ensure all services are running and the `auto_tunnel.py` script has successfully updated your webhooks. Then simply run:
+
 ```bash
 python3 trigger_call.py
 ```
+
 Your phone will ring in a few seconds. Answer it, and you'll be speaking directly to the AI agent!
