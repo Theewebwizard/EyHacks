@@ -138,3 +138,195 @@ Customer: Hello, I have twisted my ankle and need to file a medical claim.
 Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
 Customer: My name is Alice, and the claim ID is CLM-1002.
 Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Hello. How are you?
+Agent: I'm
+Agent: I am here to help you with the claim.
+Agent: Hello.
+Agent: Hello.
+Agent: How are you?
+Agent: How are you?
+Agent: Oh, I am doing fine.
+Agent: Okay. So your issue is medical related.
+Agent: Hello.
+Agent: Hello.
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Hi.
+Agent: Hi. How
+Agent: How are you?
+Agent: are you?
+Agent: Over. I'm doing fine as well.
+Agent: Over there, I'm doing fine as well.
+Agent: I would like to assist you with your claim.
+Agent: I would like to assist you with your claim.
+Agent: Cool.
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Hello. I am Pranchul.
+Agent: And I would like to help you today.
+Agent: Oh, yes. We can help you with your financial claim.
+Agent: Cool. Have you uploaded that
+Agent: Yeah. That would be fine.
+Agent: Yes.
+Agent: I am your agent, and I would be helping you out today with your claim.
+Agent: Okay.
+Agent: So now the next thing that I would like to check
+Agent: is how much can I delay the speaking?
+Agent: See, now I'm
+Agent: speaking continuously
+Agent: but it is not taking my content
+Agent: in a single line.
+Agent: But actually breaking it
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Okay. So now
+Agent: I would be checking Deepgram smart content voice so that
+Agent: when I speak continuously, it will take all my sentences in a
+Agent: single line.
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Hi. So I would be checking
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Hello, thank you for calling Saksham AI. How can I help you today?
+Customer: Hello, I have twisted my ankle and need to file a medical claim.
+Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?
+Customer: My name is Alice, and the claim ID is CLM-1002.
+Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Customer: It is a medical claim, and the hospital bill is 5000 dollars.
+Agent: 5000 dollars. And what was the date of the incident?
+Customer: It happened yesterday, on June 24, 2026.
+Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.
+Customer: Okay, I have uploaded the invoice and medical documents just now.
+Agent: Great. Let me check the documents now. The AI verification will review them.
+Customer: Perfect. Is there anything else you need from me?
+Agent: No. Once it is verified, I will approve your claim and resolve it.
+Customer: Thank you, I hope it is approved soon.
+Agent: You're welcome. Have a wonderful day, Alice!
+Agent: Hello. Nice to meet you.
+Agent: I
+Agent: would be now checking Deepgram's advanced feature.
+Agent: To include everything in a single line when I speak continuously.
+Agent: When I speak continuously,
+Agent: Hello, sir. So I would be helping you out with your claim.
+Agent: This time, we are checking Deepgram's AI where we have completely removed the physical number.
+Agent: So now it will automatically get the context and then write it out in the front end.
+Agent: Perfect.
+Agent: Hello.
+Agent: Hello.
+Agent: This is actually me just checking that whether artist power subscription will be working or not.
+Agent: This is actually me just checking that whether RT Power Subsram will be working or not.
+Agent: Now I'm wondering why actually in the live transcript, I am seeing two two sentences.
+Agent: Okay. So what documents have you provided me?
+Agent: Oh, cool. That would be fine. Let me just go through them. I see that they have already approved.
+Agent: By our AI.

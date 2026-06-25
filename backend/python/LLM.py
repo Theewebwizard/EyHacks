@@ -150,12 +150,10 @@ def router(state: AgentState):
 
 
 # --- LangGraph Definition ---
-workflow = StateGraph(AgentState)
+workflow = StateGraph(AgentState)  # type: ignore
 workflow.add_node("generate", generate_suggestion)
 workflow.add_node("reflect", reflect)
-`AgentState` is not assignable to upper bound `BaseModel | DataclassLike | TypedDictLikeV1 | TypedDictLikeV2` of type variable `StateT`Pyreflybad-specialization
-(class) AgentState: type[AgentState]
-Go to AgentState
+
 workflow.add_conditional_edges(
     "reflect",
     router,
@@ -170,6 +168,8 @@ workflow.add_edge("generate", "reflect")
 
 compiled_graph = workflow.compile()
 
+conversation_history = []
+
 
 # --- Main Conversation Processor ---
 def analyze_sentiment_and_emit(conversation_text):
@@ -177,7 +177,7 @@ def analyze_sentiment_and_emit(conversation_text):
     try:
         prompt = f"Analyze the sentiment of the following conversation and return exactly one word: POSITIVE, NEGATIVE, or NEUTRAL.\n\nConversation:\n{conversation_text}"
         response = safe_chat_invoke([HumanMessage(content=prompt)])
-        sentiment = response.content.strip().upper()
+        sentiment = cast(str, response.content).strip().upper()
         if sentiment in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
             socketio.emit('sentiment_update', {'sentiment': sentiment})
         else:
@@ -213,8 +213,7 @@ def process_conversation(conversation_text):
     global conversation_history
     conversation_history.append(HumanMessage(content=conversation_text))
 
-    # Emit the raw transcription text to the frontend
-    socketio.emit('live_transcription', {'text': conversation_text})
+    # We no longer emit the raw text here because it's already emitted line-by-line via /emit_transcription
 
     # Run Sentiment Analysis
     analyze_sentiment_and_emit(conversation_text)
@@ -251,6 +250,14 @@ def receive_transcription():
     response = process_conversation(data['conversation_text'])
     return jsonify({"response": response})
 
+@app.route('/emit_transcription', methods=['POST'])
+def emit_transcription():
+    """Forward a single transcription line to the frontend instantly without triggering LLM."""
+    data = request.json
+    if data and 'text' in data:
+        socketio.emit('live_transcription', {'text': data['text']})
+    return jsonify({"status": "success"}), 200
+
 @app.route('/refresh_history', methods=['POST'])
 def refresh_history():
     global conversation_history
@@ -261,6 +268,12 @@ def refresh_history():
 def start_vat():
     try:
         import sys
+        import subprocess
+        import os
+        
+        # Kill any existing background VACT processes to prevent duplicate transcriptions
+        subprocess.run(["pkill", "-f", "VACT.py"], capture_output=True)
+        
         script_dir = os.path.dirname(os.path.abspath(__file__))
         vact_path = os.path.join(script_dir, 'VACT.py')
         subprocess.Popen([sys.executable, vact_path])

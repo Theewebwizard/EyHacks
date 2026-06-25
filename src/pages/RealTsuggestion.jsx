@@ -207,7 +207,7 @@ const RealTsuggestion = () => {
            <div className="h-[3.5rem] w-full bg-slate-900/60 backdrop-blur-md flex items-center px-6 rounded-t-2xl shrink-0 border-b border-white/10">
              <span className="text-lg md:text-xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(20,184,166,0.2)]">RTS powered by SAKSHAM</span>
            </div>
-           <div ref={containerRef} className="p-6 overflow-auto h-full font-medium text-md md:text-lg text-gray-100">
+           <div ref={containerRef} className="flex-1 p-6 overflow-y-auto font-medium text-md md:text-lg text-gray-100">
              {displayedSuggestion ? (
                <div className="whitespace-pre-wrap leading-relaxed">{displayedSuggestion}</div>
              ) : (
@@ -239,7 +239,7 @@ const RealTsuggestion = () => {
              </motion.button>
            </div>
            
-           <div ref={transcriptRef} className="p-4 overflow-auto h-full text-sm md:text-md text-gray-200 flex flex-col gap-3">
+           <div ref={transcriptRef} className="flex-1 p-4 overflow-y-auto text-sm md:text-md text-gray-200 flex flex-col gap-3">
              {liveTranscription.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center opacity-40">
                    <Captions size={48} className="mb-2" />

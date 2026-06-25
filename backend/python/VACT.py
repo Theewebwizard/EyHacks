@@ -47,6 +47,14 @@ def send_to_llm(conversation_text):
     except requests.exceptions.RequestException as e:
         print("Failed to send data to LLM:", e)
 
+def emit_live_transcript(text):
+    url = f"http://{LLM_SERVER_IP}:{LLM_PORT}/emit_transcription"
+    payload = {"text": text}
+    try:
+        requests.post(url, json=payload, timeout=2)
+    except Exception as e:
+        pass
+
 
 class AudioStreamer:
     def __init__(self, device, label, output_device=None):
@@ -86,68 +94,26 @@ class AudioStreamer:
             await asyncio.sleep(0.01)
 
 
-async def run_mock_mode():
-    print("Running in Mock Mode! Simulating live call transcription...")
-    # Simulated conversation blocks
-    dialogues = [
-        [
-            "Agent: Hello, thank you for calling Saksham AI. How can I help you today?",
-            "Customer: Hello, I have twisted my ankle and need to file a medical claim.",
-            "Agent: I'm sorry to hear that. I can help. Can I have your name and claim ID?",
-            "Customer: My name is Alice, and the claim ID is CLM-1002.",
-            "Agent: Thank you. Let me check CLM-1002. Is it a financial or medical claim?"
-        ],
-        [
-            "Customer: It is a medical claim, and the hospital bill is 5000 dollars.",
-            "Agent: 5000 dollars. And what was the date of the incident?",
-            "Customer: It happened yesterday, on June 24, 2026.",
-            "Agent: Excellent. Please make sure to upload the medical report and invoice files in the client dashboard.",
-            "Customer: Okay, I have uploaded the invoice and medical documents just now."
-        ],
-        [
-            "Agent: Great. Let me check the documents now. The AI verification will review them.",
-            "Customer: Perfect. Is there anything else you need from me?",
-            "Agent: No. Once it is verified, I will approve your claim and resolve it.",
-            "Customer: Thank you, I hope it is approved soon.",
-            "Agent: You're welcome. Have a wonderful day, Alice!"
-        ]
-    ]
-    
-    for idx, block in enumerate(dialogues):
-        await asyncio.sleep(5)  # wait 5 seconds between conversation blocks
-        conversation_text = "\n".join(block)
-        print(f"\n--- Simulating Conversation Block {idx+1} ---")
-        print(conversation_text)
-        
-        # Log conversation and emit via socketio (by calling process_conversation in LLM.py)
-        with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
-            for line in block:
-                log_file.write(f"{line}\n")
-        
-        # Send to LLM
-        send_to_llm(conversation_text)
-        
-    print("Mock conversation finished.")
-
 
 async def main():
     agent_stream = None
     customer_stream = None
 
-    if sd is None or MOCK_MODE or AsyncDeepgramClient is None:
-        await run_mock_mode()
-        return
+    if sd is None or AsyncDeepgramClient is None:
+        print("Missing required libraries. Exiting.")
+        import sys
+        sys.exit(1)
 
     api_key = os.getenv("DEEPGRAM_API_KEY")
     if not api_key:
-        print("Missing DEEPGRAM_API_KEY. Falling back to Mock Mode!")
-        await run_mock_mode()
-        return
+        print("Missing DEEPGRAM_API_KEY. Exiting.")
+        import sys
+        sys.exit(1)
 
     try:
-        # Define devices (update these IDs accordingly)
-        agent_device = 1  # Your microphone
-        customer_device = 2  # Virtual Audio Cable input
+        # Define devices (update these IDs accordingly based on your system)
+        agent_device = None  # None uses system default microphone
+        customer_device = 25  # 'dummy_source' from PulseAudio for customer
 
         # Initialize audio streams
         agent_stream = AudioStreamer(agent_device, "Agent")
@@ -161,39 +127,53 @@ async def main():
 
         async with deepgram.listen.v1.connect(
             model="nova-2",
-            punctuate=True,
+            smart_format=True,
             encoding="linear16",
             sample_rate=32000,
+            endpointing=True,
             interim_results=False,
         ) as agent_connection, deepgram.listen.v1.connect(
             model="nova-2",
-            punctuate=True,
+            smart_format=True,
             encoding="linear16",
             sample_rate=32000,
+            endpointing=True,
             interim_results=False,
         ) as customer_connection:
 
             conversation_buffer = []  # Store chunks of conversation
+            sentence_buffers = {"Agent": "", "Customer": ""}
 
             async def process_transcript(label, result):
                 try:
                     if getattr(result, "type", None) != "Results":
                         return
-                    transcript = result.channel.alternatives[0].transcript
-                    if transcript.strip():
-                        log_entry = f"{label}: {transcript}\n"
+                    transcript = result.channel.alternatives[0].transcript.strip()
+                    if not transcript:
+                        return
+                    
+                    sentence_buffers[label] += " " + transcript
+                    sentence_buffers[label] = sentence_buffers[label].strip()
+                    
+                    # Break dynamically when grammar suggests a complete sentence (or safety limit)
+                    if sentence_buffers[label].endswith(('.', '?', '!')) or len(sentence_buffers[label]) > 400:
+                        final_sentence = sentence_buffers[label]
+                        sentence_buffers[label] = ""  # reset
+                        
+                        log_entry = f"{label}: {final_sentence}\n"
                         print(log_entry.strip())
+                        emit_live_transcript(log_entry.strip())  # Send instantly to UI
                         conversation_buffer.append(log_entry)
 
                         # Append to log file
                         with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
                             log_file.write(log_entry)
 
-                    # Send to LLM after 5 conversation chunks
-                    if len(conversation_buffer) >= 5:
-                        conversation_text = "\n".join(conversation_buffer)
-                        send_to_llm(conversation_text)  # Send transcription to LLM API
-                        conversation_buffer.clear()  # Clear buffer after sending
+                        # Send to LLM after 2 conversation chunks for faster RTS updates
+                        if len(conversation_buffer) >= 2:
+                            conversation_text = "\n".join(conversation_buffer)
+                            send_to_llm(conversation_text)  # Send transcription to LLM API
+                            conversation_buffer.clear()  # Clear buffer after sending
 
                 except Exception as e:
                     print(f"Processing error: {e}")
@@ -245,20 +225,12 @@ async def main():
                     customer_stream.stream.close()
 
     except Exception as e:
-        print(f"\nReal-mode failed or not supported in this environment: {e}")
-        print("Falling back to Mock Mode...")
-        if agent_stream and getattr(agent_stream, 'stream', None):
-            try:
-                agent_stream.stream.stop()
-                agent_stream.stream.close()
-            except Exception:
-                pass
-        if customer_stream and getattr(customer_stream, 'stream', None):
-            try:
-                customer_stream.stream.close()
-            except Exception:
-                pass
-        await run_mock_mode()
+        print(f"\nCRASH: {e}")
+        import traceback
+        traceback.print_exc()
+        print("Mock Mode is disabled. Exiting.")
+        import sys
+        sys.exit(1)
 
 
 if __name__ == "__main__":
