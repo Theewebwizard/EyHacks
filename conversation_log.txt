@@ -1,0 +1,42 @@
+Agent: Hi.
+Agent: How are you?
+Agent: Doing?
+Agent: Yes.
+Agent: I am your agent today, and I would be helping you in figuring out how to process your claim.
+Agent: I am here to assist you with any question or concerns you may have.
+Agent: Can you please provide the client's name and policy number?
+Agent: Okay. Sure. I will be waiting till you provide me that.
+Agent: Okay.
+Agent: I have checked your policy number and your name.
+Agent: And it checks out.
+Agent: And I see that it has already been approved by AI.
+Agent: Okay. So you want to claim an amount of 5,000 rupees.
+Agent: And you have broken your ankle.
+Agent: Can you tell me the date and time, location, name, and contact information of which?
+Agent: Hello. I am your agent today, and I will be helping you out.
+Agent: Hello.
+Agent: I'm your agent.
+Agent: Oh, yes. I can hear you now.
+Agent: Okay.
+Agent: Hello. I am your listener for today.
+Agent: Oh, okay. So you have broken your ankle.
+Agent: And have filed for 5,000 rupees claim.
+Agent: Hello, Morny.
+Agent: I am your listener for today.
+Agent: Oh, I see.
+Agent: That you have filed for a claim of 5,000 rupees as you have broken your ankle and this is a financial claim.
+Agent: Good morning. I hope you are doing well today.
+Agent: I am Raki.
+Agent: And I see that you have filed for a claim of rupees 5,000 for your broken ankle.
+Agent: To proceed with the claim, we require a copy of a medical report and police report if applicable.
+Agent: To verify the claim details. We also need a copy of your ID proof and recent medical bill to support your claim.
+Agent: So
+Agent: Thank you for confirming the details.
+Agent: I have checked on the status of your claim.
+Agent: And it's currently being processed.
+Agent: Regarding the medical report, our system indicates that we have already received a copy from the hospital.
+Agent: To confirm, please verify that we have the most up to date information by providing a copy from your side.
+Agent: As for the police report, our system doesn't show that we have received a copy yet.
+Agent: If you have filed a report, please provide it to us as soon as possible.
+Agent: As this will help expedite the processing of your claim.
+Agent: Once we receive the medical report, and police report, if applicable, we will proceed with the claim

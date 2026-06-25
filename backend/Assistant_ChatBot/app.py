@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from chat import initialize_pinecone, setup_vector_store, initialize_gemini, rerank_documents
 from ingest import main as run_ingestion
 import os
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
 app = Flask(__name__)
 CORS(app)
@@ -39,23 +39,20 @@ def handle_query():
         if not user_input:
             return jsonify({"error": "Empty query"}), 400
         
-        # Perform similarity search (increased k for re-ranking)
+        # Perform fast similarity search directly (no heavy local CrossEncoder)
         results = vector_store.similarity_search_with_relevance_scores(
             user_input,
-            k=15,
+            k=3,
             score_threshold=0.3
         )
 
         if not results:
             return jsonify({
-                "response": "This claim pattern isn't recognized in our current records"
+                "response": "This claim pattern isn't recognized in our current records."
             })
 
-        # Re-rank with Cross-Encoder
-        top_docs = rerank_documents(user_input, results, top_k=3)
-
-        # Generate response
-        context = "\n".join([doc.page_content for doc in top_docs])
+        # Generate response using top 3 Pinecone results
+        context = "\n".join([doc.page_content for doc, _ in results])
         response = rag_chain.invoke({"context": context, "question": user_input})
         
         return jsonify({"response": response})

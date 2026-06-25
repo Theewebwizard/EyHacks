@@ -143,8 +143,32 @@ async def main():
 
             conversation_buffer = []  # Store chunks of conversation
             sentence_buffers = {"Agent": "", "Customer": ""}
+            last_update_time = {"Agent": 0.0, "Customer": 0.0}
+
+            async def flush_buffer_loop():
+                import time
+                while True:
+                    await asyncio.sleep(0.2)
+                    now = time.time()
+                    for label in ["Agent", "Customer"]:
+                        if sentence_buffers[label] and (now - last_update_time[label]) > 0.8:
+                            final_sentence = sentence_buffers[label]
+                            sentence_buffers[label] = ""
+                            
+                            log_entry = f"{label}: {final_sentence}\n"
+                            print(f"[FLUSH] {log_entry.strip()}")
+                            asyncio.create_task(asyncio.to_thread(emit_live_transcript, log_entry.strip()))
+                            conversation_buffer.append(log_entry)
+                            with open("conversation_log.txt", "a", encoding="utf-8") as log_file:
+                                log_file.write(log_entry)
+
+                            if len(conversation_buffer) >= 2:
+                                conversation_text = "\n".join(conversation_buffer)
+                                asyncio.create_task(asyncio.to_thread(send_to_llm, conversation_text))
+                                conversation_buffer.clear()
 
             async def process_transcript(label, result):
+                import time
                 try:
                     if getattr(result, "type", None) != "Results":
                         return
@@ -154,9 +178,12 @@ async def main():
                     
                     sentence_buffers[label] += " " + transcript
                     sentence_buffers[label] = sentence_buffers[label].strip()
+                    last_update_time[label] = time.time()
                     
-                    # Break dynamically when grammar suggests a complete sentence (or safety limit)
-                    if sentence_buffers[label].endswith(('.', '?', '!')) or len(sentence_buffers[label]) > 400:
+                    # We rely purely on the 0.8s background flush to emit the sentence.
+                    # This guarantees the transcript appears instantly when the user pauses.
+                    # We still keep a safety length check to prevent massive memory strings.
+                    if len(sentence_buffers[label]) > 400:
                         final_sentence = sentence_buffers[label]
                         sentence_buffers[label] = ""  # reset
                         
@@ -203,6 +230,7 @@ async def main():
             # Start listener background tasks
             agent_listen_task = asyncio.create_task(agent_connection.start_listening())
             customer_listen_task = asyncio.create_task(customer_connection.start_listening())
+            flush_task = asyncio.create_task(flush_buffer_loop())
 
             try:
                 print("Start speaking... (Press Ctrl+C to stop)")
@@ -221,6 +249,7 @@ async def main():
                 await customer_connection.send_finalize()
                 agent_listen_task.cancel()
                 customer_listen_task.cancel()
+                flush_task.cancel()
                 if agent_stream.stream:
                     agent_stream.stream.stop()
                     agent_stream.stream.close()

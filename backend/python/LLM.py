@@ -133,15 +133,11 @@ def generate_suggestion(state: AgentState):
 def reflect(state: AgentState):
     """Reflect on the suggestion to ensure policy compliance."""
     suggestion = state["suggestion"]
-    reflection_prompt = HumanMessage(content=f"Review this suggestion for strict policy compliance and clarity:\n\n{suggestion}\n\nDoes it meet the standards? Answer YES or NO, followed by the refined suggestion if needed.")
+    reflection_prompt = HumanMessage(content=f"Review this suggestion for strict policy compliance and clarity:\n\n{suggestion}\n\nIf it needs improvement, rewrite it. Output ONLY the final, polished suggestion text that the agent should read. Do NOT output any introductory text, lists, explanations, or the words 'YES' or 'NO'.")
     response = safe_chat_invoke([reflection_prompt])
     
     response_content = response.content
-    if isinstance(response_content, str):
-        validated = "YES" in response_content.upper()
-    else:
-        validated = "YES" in str(response_content).upper()
-    return {"validated": validated, "suggestion": response_content}
+    return {"validated": True, "suggestion": response_content}
 
 def router(state: AgentState):
     # Always end after reflection to prevent infinite generation loops if LLM outputs NO
