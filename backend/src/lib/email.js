@@ -38,3 +38,67 @@ export const sendClaimUpdateEmail = async (clientEmail, clientName, claimID, upd
         console.error(`Failed to send email for claim ${claimID}:`, error);
     }
 };
+
+const formatIcsDate = (date) => {
+    return date.toISOString().replace(/-|:|\.\d+/g, '');
+};
+
+export const sendTaskScheduleEmail = async (clientEmail, title, description, dueDate, isRescheduled = false) => {
+    try {
+        const dDate = new Date(dueDate);
+        const endDate = new Date(dDate.getTime() + 60 * 60 * 1000); // 1 hour later
+        
+        const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatIcsDate(dDate)}/${formatIcsDate(endDate)}&details=${encodeURIComponent(description || '')}`;
+        
+        const icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//SAKSHAM AI Support//EN',
+            'BEGIN:VEVENT',
+            `DTSTAMP:${formatIcsDate(new Date())}`,
+            `DTSTART:${formatIcsDate(dDate)}`,
+            `DTEND:${formatIcsDate(endDate)}`,
+            `SUMMARY:${title}`,
+            `DESCRIPTION:${description || ''}`,
+            'END:VEVENT',
+            'END:VCALENDAR'
+        ].join('\\r\\n');
+
+        const mailOptions = {
+            from: '"SAKSHAM AI Support" <support@saksham.ai>',
+            to: clientEmail,
+            subject: isRescheduled ? `Rescheduled: ${title}` : `Scheduled: ${title}`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Hello,</h2>
+                    <p>Your agent has ${isRescheduled ? 'rescheduled' : 'scheduled'} an event with you.</p>
+                    <div style="padding: 15px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; margin: 20px 0;">
+                        <h3>${title}</h3>
+                        <p><strong>Time:</strong> ${dDate.toLocaleString()}</p>
+                        <p>${description || ''}</p>
+                    </div>
+                    <p>
+                        <a href="${googleCalUrl}" style="display: inline-block; background: #4285F4; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            Add to Google Calendar
+                        </a>
+                    </p>
+                    <p style="font-size: 12px; color: #666;">Or use the attached .ics file for Apple Calendar and Outlook.</p>
+                    <br/>
+                    <p>Best regards,</p>
+                    <p><strong>SAKSHAM AI Support Team</strong></p>
+                </div>
+            `,
+            icalEvent: {
+                filename: 'invite.ics',
+                method: 'request',
+                content: icsContent
+            }
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`Calendar invite sent to ${clientEmail}: %s`, info.messageId);
+        console.log(`Preview URL: %s`, nodemailer.getTestMessageUrl(info));
+    } catch (error) {
+        console.error(`Failed to send calendar invite to ${clientEmail}:`, error);
+    }
+};

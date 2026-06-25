@@ -17,6 +17,10 @@ const TaskSchema = mongoose.Schema({
         type: String,
         default: null
     },
+    clientEmail: {
+        type: String,
+        default: ""
+    },
     status: {
         type: String,
         enum: ['Pending', 'Completed'],

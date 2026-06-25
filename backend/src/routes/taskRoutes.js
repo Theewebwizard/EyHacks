@@ -1,5 +1,6 @@
 import express from "express";
 import Task from "../models/task.model.js";
+import { sendTaskScheduleEmail } from "../lib/email.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 // Create a new task
 router.post('/', async (req, res) => {
     try {
-        const { title, description, dueDate, isAIGenerated } = req.body;
+        const { title, description, dueDate, clientEmail, isAIGenerated } = req.body;
         
         if (!title) {
             return res.status(400).json({ error: "Title is required" });
@@ -26,11 +27,18 @@ router.post('/', async (req, res) => {
         const newTask = new Task({
             title,
             description,
+            clientEmail: clientEmail || "",
             dueDate: dueDate ? new Date(dueDate) : null,
             isAIGenerated: isAIGenerated || false
         });
 
         await newTask.save();
+        
+        // If client email exists and it's not AI generated (or we want AI to send directly, but usually we don't), send invite
+        if (clientEmail && dueDate) {
+            await sendTaskScheduleEmail(clientEmail, title, description, dueDate, false);
+        }
+
         res.status(201).json(newTask);
     } catch (error) {
         console.error("Error creating task:", error);
@@ -38,16 +46,38 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Update task status
+// Update task status or edit task
 router.put('/:id', async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, title, description, dueDate, clientEmail } = req.body;
+        
+        // Check if this is an edit vs just a status update
+        const existingTask = await Task.findById(req.params.id);
+        if (!existingTask) return res.status(404).json({ error: "Task not found" });
+
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (title) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (clientEmail !== undefined) updateData.clientEmail = clientEmail;
+        if (dueDate) updateData.dueDate = new Date(dueDate);
+
+        // Turn off isAIGenerated flag if the agent manually edited it
+        if (title || dueDate || clientEmail) {
+            updateData.isAIGenerated = false;
+        }
+
         const task = await Task.findByIdAndUpdate(
             req.params.id,
-            { status },
+            updateData,
             { new: true }
         );
-        if (!task) return res.status(404).json({ error: "Task not found" });
+        
+        // If the date or email changed, and there is an email, send rescheduled invite
+        if (clientEmail && dueDate && (existingTask.dueDate?.toISOString() !== new Date(dueDate).toISOString() || !existingTask.clientEmail)) {
+             await sendTaskScheduleEmail(clientEmail, task.title, task.description, task.dueDate, true);
+        }
+
         res.status(200).json(task);
     } catch (error) {
         console.error("Error updating task:", error);
