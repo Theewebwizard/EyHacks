@@ -68,9 +68,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
+      - "5002:5002"
     environment:
       - API_KEY=${API_KEY}
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - TWILIO_WSS_URL=${TWILIO_WSS_URL}
       - RABBITMQ_URL=amqp://rabbitmq:5672
     volumes:
       - ./backend/python:/app

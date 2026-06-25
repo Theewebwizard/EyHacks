@@ -20,6 +20,11 @@ from logger_config import get_logger
 import asyncio
 import threading
 from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
+import websockets
+import base64
+import json
+# pyrefly: ignore [missing-import]
+from twilio.twiml.voice_response import VoiceResponse, Connect
 
 logger = get_logger(__name__)
 
@@ -145,7 +150,7 @@ def generate_suggestion(state: AgentState):
     messages = state["messages"]
     # Keep only the last 6 messages to stay within the 6,000 Tokens Per Minute (TPM) rate limit
     recent_messages = list(messages)[-6:]
-    sys_msg = SystemMessage(content="You are a helpful BPO assistant. Use tools to look up claim status and policy vectors. Draft a clear suggestion for the agent.")
+    sys_msg = SystemMessage(content="You are an AI co-pilot assisting a BPO call center agent. You are reading the live transcript of what the Agent is saying on the phone. Draft a clear, professional suggestion for what the Agent should ask, say, or do next to help the customer.")
     response = safe_chat_invoke([sys_msg] + recent_messages)
     return {"suggestion": response.content}
 
@@ -218,7 +223,7 @@ def analyze_sentiment_and_emit(conversation_text):
                 "message": message,
                 "score": highest_score
             }
-            socketio.emit('sentiment_alert', data)
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'sentiment_alert', 'data': data})
     except Exception as e:
         logger.error(f"Sentiment analysis error: {e}")
 
@@ -255,11 +260,11 @@ def process_conversation(conversation_text):
     # Extract financial details and emit client summary
     extracted = extract_financial_details(conversation_text)
     if extracted.get('client_summary') or extracted.get('claim_amount') != 'N/A':
-        socketio.emit('client_summary', extracted)
+        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'client_summary', 'data': extracted})
         
     if extracted.get('tasks') and len(extracted['tasks']) > 0:
         for task in extracted['tasks']:
-            socketio.emit('new_ai_task', task)
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': task})
 
     try:
         # Run LangGraph
@@ -267,28 +272,82 @@ def process_conversation(conversation_text):
         final_state = compiled_graph.invoke(initial_state)
 
         formatted_response = final_state["suggestion"]
-        socketio.emit('new_suggestion', {'response': formatted_response})
+        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': formatted_response}})
 
         conversation_history.append(AIMessage(content=formatted_response))
         return formatted_response
     except Exception as e:
         logger.error(f"Error in process_conversation: {e}")
         fallback_suggestion = f"⚠️ BPO Suggestion Draft: [Suggestion currently unavailable due to rate limit/error: {str(e)}]"
-        socketio.emit('new_suggestion', {'response': fallback_suggestion})
+        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': fallback_suggestion}})
         return fallback_suggestion
 
 # --- Deepgram Audio Streaming (Async Bridge) ---
 audio_queue = None
 loop = None
 
+async def start_twilio_server():
+    import websockets
+    async with websockets.serve(twilio_ws_handler, "0.0.0.0", 5002):
+        await asyncio.Future()  # run forever
+
 def start_asyncio_loop():
     global loop, audio_queue
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     audio_queue = asyncio.Queue()
-    loop.run_forever()
+    
+    # Websocket Server for Twilio blocks this thread but keeps loop running
+    loop.run_until_complete(start_twilio_server())
 
 threading.Thread(target=start_asyncio_loop, daemon=True).start()
+
+async def twilio_ws_handler(websocket):
+    api_key = os.getenv("DEEPGRAM_API_KEY")
+    if not api_key:
+        logger.error("Missing DEEPGRAM_API_KEY")
+        return
+        
+    dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&diarize=true"
+    
+    async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as dg_socket:
+        
+        async def receive_from_deepgram():
+            try:
+                async for msg in dg_socket:
+                    res = json.loads(msg)
+                    if res.get("is_final"):
+                        alt = res.get("channel", {}).get("alternatives", [{}])[0]
+                        transcript = alt.get("transcript", "").strip()
+                        if transcript:
+                            speaker = 0
+                            if alt.get("words") and len(alt["words"]) > 0:
+                                speaker = alt["words"][0].get("speaker", 0)
+                            speaker_name = "Customer"
+                            log_entry = f"{speaker_name}: {transcript}"
+                            logger.info(f"Twilio Transcript: {log_entry}")
+                            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
+                            threading.Thread(target=process_conversation, args=(log_entry,)).start()
+            except Exception as e:
+                logger.error(f"Deepgram receive error: {e}")
+
+        # Start listening to Deepgram in the background
+        asyncio.create_task(receive_from_deepgram())
+        
+        try:
+            async for message in websocket:
+                data = json.loads(message)
+                if data["event"] == "media":
+                    chunk = base64.b64decode(data["media"]["payload"])
+                    await dg_socket.send(chunk)
+                elif data["event"] == "stop":
+                    break
+        except Exception as e:
+            logger.error(f"Twilio WS Error: {e}")
+        finally:
+            # Twilio socket closed
+            pass
+
 
 async def deepgram_connection_task():
     global audio_queue
@@ -297,53 +356,45 @@ async def deepgram_connection_task():
         logger.error("Missing DEEPGRAM_API_KEY. Cannot stream audio.")
         return
 
-    if DeepgramClient is None:
-        logger.error("Deepgram SDK not found. Cannot stream audio.")
-        return
-
     if audio_queue is None:
         logger.error("audio_queue not initialized.")
         return
 
-    deepgram = DeepgramClient(api_key)
-    connection = getattr(deepgram.listen, "asyncwebsocket").v("1")
+    dg_url = "wss://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&interim_results=false&diarize=true"
     
-    async def on_message(self, result, **kwargs):
-        if not result.channel.alternatives: return
-        transcript = result.channel.alternatives[0].transcript.strip()
-        if not transcript: return
+    import websockets
+    async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as connection:
         
-        log_entry = f"Agent: {transcript}"
-        logger.info(f"Deepgram Transcript: {log_entry}")
-        socketio.emit('live_transcription', {'text': log_entry})
+        async def receive_from_deepgram():
+            try:
+                async for msg in connection:
+                    res = json.loads(msg)
+                    if res.get("is_final"):
+                        alt = res.get("channel", {}).get("alternatives", [{}])[0]
+                        transcript = alt.get("transcript", "").strip()
+                        if transcript:
+                            speaker = alt.get("words", [{}])[0].get("speaker", 0) if alt.get("words") else 0
+                            speaker_name = "Agent" if speaker == 0 else "Customer"
+                            log_entry = f"{speaker_name}: {transcript}"
+                            logger.info(f"Deepgram Transcript: {log_entry}")
+                            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
+                            threading.Thread(target=process_conversation, args=(log_entry,)).start()
+            except Exception as e:
+                logger.error(f"Deepgram receive error: {e}")
+
+        asyncio.create_task(receive_from_deepgram())
         
-        threading.Thread(target=process_conversation, args=(log_entry,)).start()
+        try:
+            while True:
+                chunk = await audio_queue.get()
+                if chunk is None: 
+                    break
+                await connection.send(chunk)
+        except Exception as e:
+            logger.error(f"Deepgram sending error: {e}")
+        finally:
+            pass
 
-    async def on_error(self, err, **kwargs):
-        logger.error(f"Deepgram Error: {err}")
-
-    connection.on(LiveTranscriptionEvents.Transcript, on_message)
-    connection.on(LiveTranscriptionEvents.Error, on_error)
-    
-    options = LiveOptions(
-        model="nova-2",
-        smart_format=True,
-        endpointing="500",
-        interim_results=False
-    )
-    
-    await connection.start(options)
-    
-    try:
-        while True:
-            chunk = await audio_queue.get()
-            if chunk is None: 
-                break
-            await connection.send(chunk)
-    except Exception as e:
-        logger.error(f"Deepgram sending error: {e}")
-    finally:
-        await connection.finish()
 
 @socketio.on('start_recording')
 def handle_start_recording():
@@ -373,6 +424,23 @@ def handle_stop_recording():
 
 # --- Flask Endpoints ---
 
+@app.route('/twilio/voice', methods=['POST'])
+def twilio_voice():
+    response = VoiceResponse()
+    response.say("Welcome to SAKSHAM Support. Please hold while we connect you to an agent.")
+    
+    # We construct the WSS url from the incoming request's host, replacing port 5000 with 5002
+    host = request.host.split(':')[0]
+    
+    # Allow overriding via environment variable for production (e.g., ngrok tunnels)
+    wss_url = os.getenv("TWILIO_WSS_URL", f"wss://{host}:5002")
+    
+    connect = Connect()
+    connect.stream(url=wss_url)
+    response.append(connect)
+    
+    return str(response), 200, {'Content-Type': 'text/xml'}
+
 @app.route('/process_conversation', methods=['POST'])
 def receive_transcription():
     data = request.json
@@ -388,6 +456,25 @@ def emit_transcription():
     if data and 'text' in data:
         socketio.emit('live_transcription', {'text': data['text']})
     return jsonify({"status": "success"}), 200
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+import requests
+
+@app.route('/test_emit', methods=['GET'])
+def test_emit():
+    socketio.emit('live_transcription', {'text': 'TEST TRANSCRIPT FROM HTTP'})
+    socketio.emit('new_suggestion', {'response': 'TEST SUGGESTION FROM HTTP'})
+    return jsonify({"status": "emitted"}), 200
+
+@app.route('/internal_emit', methods=['POST'])
+def internal_emit():
+    data = request.json
+    socketio.emit(data['event'], data['data'])
+    return jsonify({"status": "emitted"}), 200
+
 
 @app.route('/refresh_history', methods=['POST'])
 def refresh_history():
