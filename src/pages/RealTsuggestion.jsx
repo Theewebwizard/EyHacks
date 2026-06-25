@@ -232,13 +232,15 @@ const RealTsuggestion = () => {
            </p>
         </div>
         <div className="flex-[0.3] md:pl-6 flex flex-col justify-center gap-3">
-           <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md">
-             <span className="text-slate-400 font-bold text-xs md:text-sm uppercase tracking-wider">Claim Amount:</span>
-             <span className={`font-bold text-md md:text-lg bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`} style={{ dropShadow: `0 0 10px ${theme.shadow}` }}>{claimAmount}</span>
+           <div className="relative flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md overflow-hidden">
+             <div className="absolute inset-0 bg-teal-500/5 blur-2xl pointer-events-none" />
+             <span className="text-slate-400 font-bold text-xs md:text-sm uppercase tracking-wider relative z-10">Claim Amount:</span>
+             <span className={`font-bold text-md md:text-lg bg-gradient-to-r ${theme.text} bg-clip-text text-transparent relative z-10`} style={{ dropShadow: `0 0 10px ${theme.shadow}` }}>{claimAmount}</span>
            </div>
-           <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md">
-             <span className="text-slate-400 font-bold text-xs md:text-sm uppercase tracking-wider">Incident Date:</span>
-             <span className="text-slate-200 font-bold text-md md:text-lg">{incidentDate}</span>
+           <div className="relative flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md overflow-hidden">
+             <div className="absolute inset-0 bg-teal-500/5 blur-2xl pointer-events-none" />
+             <span className="text-slate-400 font-bold text-xs md:text-sm uppercase tracking-wider relative z-10">Incident Date:</span>
+             <span className="text-slate-200 font-bold text-md md:text-lg relative z-10">{incidentDate}</span>
            </div>
         </div>
       </motion.div>
@@ -273,11 +275,24 @@ const RealTsuggestion = () => {
                  </motion.div>
                ))
              ) : (
-               <div className="h-full w-full flex flex-col justify-center items-center opacity-70 gap-4">
-                 <div id="loader-wrapper" className="scale-75">
-                   <div id="loader"></div>
+               <div className="h-full w-full flex flex-col justify-center items-center opacity-90 gap-8">
+                 <div className="relative flex items-center justify-center w-32 h-32">
+                   {/* Outer dynamic ring */}
+                   <motion.div
+                     key={liveTranscription.length}
+                     initial={{ scale: 1, opacity: 0.5 }}
+                     animate={{ scale: 2, opacity: 0 }}
+                     transition={{ duration: 1, ease: "easeOut" }}
+                     className="absolute inset-0 rounded-full border border-teal-400/50 bg-teal-500/10"
+                   />
+                   {/* Inner breathing ring */}
+                   <motion.div
+                     animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                     transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                     className="absolute inset-4 rounded-full bg-gradient-to-tr from-teal-400/40 to-emerald-500/40 shadow-[0_0_30px_rgba(45,212,191,0.4)] backdrop-blur-sm border border-teal-300/30"
+                   />
                  </div>
-                 <p className="text-sm italic text-gray-400">Analyzing conversation to generate suggestions...</p>
+                 <p className="text-sm italic text-teal-200/70 font-medium tracking-wide">Listening for conversation markers...</p>
                </div>
              )}
            </div>

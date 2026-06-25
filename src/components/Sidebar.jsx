@@ -18,14 +18,21 @@ const Sidebar = ({ isOpen, onClose }) => {
       {navItems.map((item) => {
         const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/home');
         return (
-          <Link to={item.path} key={item.path} onClick={onClose} className="w-full flex justify-center">
+          <Link to={item.path} key={item.path} onClick={onClose} className="w-full flex justify-center relative">
+            {isActive && (
+              <motion.div 
+                layoutId="active-pill"
+                className="absolute inset-0 mx-auto w-14 h-14 rounded-2xl bg-teal-500/20 shadow-[0_0_20px_rgba(45,212,191,0.25)] border border-teal-400/50 pointer-events-none"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className={`min-w-[44px] min-h-[44px] size-14 rounded-2xl flex items-center justify-center transition-all duration-300 group
+              className={`relative z-10 min-w-[44px] min-h-[44px] size-14 rounded-2xl flex items-center justify-center transition-all duration-300 group
                 ${isActive 
-                  ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-[0_0_15px_rgba(20,184,166,0.5)] border border-green-400/50" 
-                  : "bg-gray-800/40 text-gray-400 hover:bg-gray-700/60 hover:text-white border border-white/5 hover:border-white/20 hover:shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                  ? "text-teal-400" 
+                  : "bg-transparent text-slate-400 hover:bg-white/[0.03] hover:text-white border border-transparent hover:border-white/10 hover:shadow-[0_0_10px_rgba(255,255,255,0.05)]"
                 }`}
               title={item.label}
               aria-label={item.label}
@@ -41,7 +48,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Desktop Sidebar (md and up) */}
-      <div className="hidden md:flex fixed left-0 top-[4rem] h-[calc(100vh-4rem)] w-[5rem] bg-[#0f172a]/70 backdrop-blur-xl border-r border-t border-white/10 z-30">
+      <div className="hidden md:flex fixed left-0 top-[4rem] h-[calc(100vh-4rem)] w-[5rem] bg-[#0e1322]/60 backdrop-blur-lg border-r border-t border-white/[0.06] z-30">
         {sidebarContent}
       </div>
 
@@ -63,7 +70,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed left-0 top-0 h-screen w-20 bg-[#0f172a]/95 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.8)]"
+              className="md:hidden fixed left-0 top-0 h-screen w-20 bg-[#0e1322]/90 backdrop-blur-lg border-r border-white/[0.06] z-50 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.8)]"
             >
               <button 
                 onClick={onClose} 
