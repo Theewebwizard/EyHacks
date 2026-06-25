@@ -40,3 +40,12 @@ Agent: As for the police report, our system doesn't show that we have received a
 Agent: If you have filed a report, please provide it to us as soon as possible.
 Agent: As this will help expedite the processing of your claim.
 Agent: Once we receive the medical report, and police report, if applicable, we will proceed with the claim
+Agent: Hello. I am, and I will be your agent here.
+Agent: Okay. So you have filed
+Agent: for a 5,000 rupees claim as you have broken your ankle.
+Agent: Yes.
+Agent: Let me just go through your doc
+Agent: regarding your policy, we have verified that you have a comprehensive health insurance.
+Agent: Policy with a coverage of 5 lakh rupees, which includes coverage
+Agent: If you have any questions, please let me know.
+Agent: Okay?

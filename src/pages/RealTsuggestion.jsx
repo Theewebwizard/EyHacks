@@ -8,6 +8,25 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const socket = io("http://localhost:5000");
 
+const SuggestionCard = ({ text, isNew, scrollToBottom }) => {
+  const [displayed, setDisplayed] = useState(isNew ? "" : text);
+  
+  useEffect(() => {
+    if (isNew) {
+      let index = 0;
+      const interval = setInterval(() => {
+        setDisplayed((prev) => text.slice(0, index));
+        index++;
+        scrollToBottom();
+        if (index > text.length) clearInterval(interval);
+      }, 10);
+      return () => clearInterval(interval);
+    }
+  }, [text, isNew, scrollToBottom]);
+
+  return <div className="whitespace-pre-wrap leading-relaxed">{displayed}</div>;
+};
+
 const RealTsuggestion = () => {
   const [suggestions, setSuggestions] = useState([]); 
   const [displayedSuggestion, setDisplayedSuggestion] = useState(""); 
@@ -41,12 +60,7 @@ const RealTsuggestion = () => {
         .map((line) => `${line}`)
         .join("\n");
 
-      setSuggestions((prev) => {
-        const newSuggestions = [formattedResponse, ...prev];
-        return newSuggestions.length > 2 ? [formattedResponse] : newSuggestions;
-      });
-
-      startTypingEffect(formattedResponse);
+      setSuggestions((prev) => [...prev, formattedResponse]);
     });
 
     socket.on("sentiment_alert", (data) => {
@@ -78,7 +92,7 @@ const RealTsuggestion = () => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [displayedSuggestion]);
+  }, [suggestions]);
   
   useEffect(() => {
     if (transcriptRef.current) {
@@ -111,18 +125,17 @@ const RealTsuggestion = () => {
       });
 
       if (response.ok) {
-        setDisplayedSuggestion("");
         setSuggestions([]);
         setLiveTranscription([]);
         setClientSummary("");
         setClaimAmount("N/A");
         setIncidentDate("N/A");
-        startTypingEffect("Memory has been successfully refreshed. Ready for new conversation.");
+        toast.success("Memory has been successfully refreshed.");
       } else {
-        startTypingEffect("Failed to refresh memory. Please try again.");
+        toast.error("Failed to refresh memory. Please try again.");
       }
     } catch (error) {
-      startTypingEffect("An error occurred while refreshing memory.");
+      toast.error("An error occurred while refreshing memory.");
     } finally {
       setIsRefreshing(false);
     }
@@ -136,23 +149,23 @@ const RealTsuggestion = () => {
       });
 
       if (response.ok) {
-        startTypingEffect("SAKSHAM has been started successfully.");
+        toast.success("SAKSHAM has been started successfully.");
       } else {
-        startTypingEffect("Failed to start SAKSHAM. Please try again.");
+        toast.error("Failed to start SAKSHAM. Please try again.");
       }
     } catch (error) {
-      startTypingEffect("An error occurred while starting SAKSHAM.");
+      toast.error("An error occurred while starting SAKSHAM.");
     }
   };
 
-  const startTypingEffect = (text) => {
-    setDisplayedSuggestion("");
-    let index = 0;
-    const interval = setInterval(() => {
-      setDisplayedSuggestion((prev) => text.slice(0, index));
-      index++;
-      if (index > text.length) clearInterval(interval);
-    }, 10);
+  const scrollToBottom = () => {
+    if (containerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      // Only auto-scroll if we are already near the bottom (within 150px)
+      if (scrollHeight - scrollTop - clientHeight < 150) {
+        containerRef.current.scrollTop = scrollHeight;
+      }
+    }
   };
 
   return (
@@ -207,14 +220,32 @@ const RealTsuggestion = () => {
            <div className="h-[3.5rem] w-full bg-slate-900/60 backdrop-blur-md flex items-center px-6 rounded-t-2xl shrink-0 border-b border-white/10">
              <span className="text-lg md:text-xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(20,184,166,0.2)]">RTS powered by SAKSHAM</span>
            </div>
-           <div ref={containerRef} className="flex-1 p-6 overflow-y-auto font-medium text-md md:text-lg text-gray-100">
-             {displayedSuggestion ? (
-               <div className="whitespace-pre-wrap leading-relaxed">{displayedSuggestion}</div>
+           <div ref={containerRef} className="flex-1 p-4 md:p-6 overflow-y-auto font-medium text-md md:text-lg text-gray-100 flex flex-col gap-4">
+             {suggestions.length > 0 ? (
+               suggestions.map((sug, i) => (
+                 <motion.div 
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   key={i} 
+                   className={`p-4 md:p-5 rounded-2xl border transition-all ${
+                     i === suggestions.length - 1 
+                       ? 'bg-blue-900/30 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
+                       : 'bg-slate-800/50 border-white/5 opacity-80 hover:opacity-100'
+                   }`}
+                 >
+                   <div className="flex items-center gap-2 mb-3">
+                     <span className={`w-2 h-2 rounded-full ${i === suggestions.length - 1 ? 'bg-blue-400 animate-pulse' : 'bg-gray-500'}`}></span>
+                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Suggestion {i + 1}</span>
+                   </div>
+                   <SuggestionCard text={sug} isNew={i === suggestions.length - 1} scrollToBottom={scrollToBottom} />
+                 </motion.div>
+               ))
              ) : (
-               <div className="h-full w-full flex justify-center items-center opacity-70">
-                 <div id="loader-wrapper">
+               <div className="h-full w-full flex flex-col justify-center items-center opacity-70 gap-4">
+                 <div id="loader-wrapper" className="scale-75">
                    <div id="loader"></div>
                  </div>
+                 <p className="text-sm italic text-gray-400">Analyzing conversation to generate suggestions...</p>
                </div>
              )}
            </div>
