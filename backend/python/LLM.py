@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 import subprocess
 from pymongo import MongoClient
 from logger_config import get_logger
+import asyncio
+import threading
+from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
 
 logger = get_logger(__name__)
 
@@ -262,6 +265,99 @@ def process_conversation(conversation_text):
         socketio.emit('new_suggestion', {'response': fallback_suggestion})
         return fallback_suggestion
 
+# --- Deepgram Audio Streaming (Async Bridge) ---
+audio_queue = None
+loop = None
+
+def start_asyncio_loop():
+    global loop, audio_queue
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    audio_queue = asyncio.Queue()
+    loop.run_forever()
+
+threading.Thread(target=start_asyncio_loop, daemon=True).start()
+
+async def deepgram_connection_task():
+    global audio_queue
+    api_key = os.getenv("DEEPGRAM_API_KEY")
+    if not api_key:
+        logger.error("Missing DEEPGRAM_API_KEY. Cannot stream audio.")
+        return
+
+    if DeepgramClient is None:
+        logger.error("Deepgram SDK not found. Cannot stream audio.")
+        return
+
+    if audio_queue is None:
+        logger.error("audio_queue not initialized.")
+        return
+
+    deepgram = DeepgramClient(api_key)
+    connection = getattr(deepgram.listen, "asyncwebsocket").v("1")
+    
+    async def on_message(self, result, **kwargs):
+        if not result.channel.alternatives: return
+        transcript = result.channel.alternatives[0].transcript.strip()
+        if not transcript: return
+        
+        log_entry = f"Agent: {transcript}"
+        logger.info(f"Deepgram Transcript: {log_entry}")
+        socketio.emit('live_transcription', {'text': log_entry})
+        
+        threading.Thread(target=process_conversation, args=(log_entry,)).start()
+
+    async def on_error(self, err, **kwargs):
+        logger.error(f"Deepgram Error: {err}")
+
+    connection.on(LiveTranscriptionEvents.Transcript, on_message)
+    connection.on(LiveTranscriptionEvents.Error, on_error)
+    
+    options = LiveOptions(
+        model="nova-2",
+        smart_format=True,
+        endpointing="500",
+        interim_results=False
+    )
+    
+    await connection.start(options)
+    
+    try:
+        while True:
+            chunk = await audio_queue.get()
+            if chunk is None: 
+                break
+            await connection.send(chunk)
+    except Exception as e:
+        logger.error(f"Deepgram sending error: {e}")
+    finally:
+        await connection.finish()
+
+@socketio.on('start_recording')
+def handle_start_recording():
+    global loop, audio_queue
+    logger.info("Starting new Deepgram streaming session...")
+    if loop is not None and audio_queue is not None:
+        # Clear existing queue
+        while not audio_queue.empty():
+            try:
+                audio_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+        asyncio.run_coroutine_threadsafe(deepgram_connection_task(), loop)
+
+@socketio.on('audio_chunk')
+def handle_audio_chunk(data):
+    global loop, audio_queue
+    if loop is not None and audio_queue is not None:
+        asyncio.run_coroutine_threadsafe(audio_queue.put(data), loop)
+
+@socketio.on('stop_recording')
+def handle_stop_recording():
+    global loop, audio_queue
+    logger.info("Stopping Deepgram streaming session...")
+    if loop is not None and audio_queue is not None:
+        asyncio.run_coroutine_threadsafe(audio_queue.put(None), loop)
 
 # --- Flask Endpoints ---
 
@@ -286,23 +382,6 @@ def refresh_history():
     global conversation_history
     conversation_history = []
     return jsonify({"status": "success", "message": "Conversation history cleared"}), 200
-
-@app.route('/start_vat', methods=['POST'])
-def start_vat():
-    try:
-        import sys
-        import subprocess
-        import os
-        
-        # Kill any existing background VACT processes to prevent duplicate transcriptions
-        subprocess.run(["pkill", "-f", "VACT.py"], capture_output=True)
-        
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        vact_path = os.path.join(script_dir, 'VACT.py')
-        subprocess.Popen([sys.executable, vact_path])
-        return jsonify({"status": "success"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == '__main__':

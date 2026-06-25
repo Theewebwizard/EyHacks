@@ -58,6 +58,9 @@ const RealTsuggestion = () => {
   const [claimID, setClaimID] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sentimentAlert, setSentimentAlert] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
 
   const { searchedClaim, searchClaim } = useStore();
   const { themeAccent } = useSettingsStore();
@@ -171,19 +174,50 @@ const RealTsuggestion = () => {
   };
 
   const handleStartSaksham = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/start_vat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
 
-      if (response.ok) {
-        toast.success("SAKSHAM has been started successfully.");
-      } else {
-        toast.error("Failed to start SAKSHAM. Please try again.");
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      let options = { mimeType: 'audio/webm;codecs=opus' };
+      if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+         options = { mimeType: 'audio/webm' };
       }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      socket.emit('start_recording');
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          socket.emit('audio_chunk', event.data);
+        }
+      };
+
+      mediaRecorder.start(250); // Emit chunk every 250ms
+      setIsRecording(true);
+      toast.success("SAKSHAM is now listening...");
     } catch (error) {
-      toast.error("An error occurred while starting SAKSHAM.");
+      console.error("Error accessing microphone:", error);
+      toast.error("Microphone access denied or unavailable.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      streamRef.current.getTracks().forEach(track => track.stop());
+      socket.emit('stop_recording');
+      setIsRecording(false);
+      toast.success("SAKSHAM stopped listening.");
     }
   };
 
@@ -493,9 +527,9 @@ const RealTsuggestion = () => {
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
                            onClick={handleStartSaksham} 
-                           className={`w-full min-h-[44px] py-4 rounded-2xl font-extrabold transition-all uppercase tracking-wider border ${theme.button}`}
+                           className={`w-full min-h-[44px] py-4 rounded-2xl font-extrabold transition-all uppercase tracking-wider border ${isRecording ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' : theme.button}`}
                          >
-                           Start SAKSHAM Voice
+                           {isRecording ? "Stop SAKSHAM Voice" : "Start SAKSHAM Voice"}
                          </motion.button>
                          <motion.button 
                            whileHover={{ scale: 1.02 }}

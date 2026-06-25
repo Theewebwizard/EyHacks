@@ -931,3 +931,38 @@ Agent: I can help with that. Could you provide your claim ID?
 Customer: Sure, it's CLM-1234.
 Agent: Thank you. Let me pull that up for you.
 Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
+Customer: Hi, I need to check the status of my claim.
+Agent: I can help with that. Could you provide your claim ID?
+Customer: Sure, it's CLM-1234.
+Agent: Thank you. Let me pull that up for you.
