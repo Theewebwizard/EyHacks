@@ -228,7 +228,7 @@ const ClaimsQueue = () => {
                         return (
                           <a
                             key={idx}
-                            href={`http://localhost:5002/${doc}`}
+                            href={`http://localhost:5001/${doc}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 p-3 bg-slate-950/30 hover:bg-slate-950/60 border border-white/5 hover:border-blue-500/30 rounded-xl transition-all"

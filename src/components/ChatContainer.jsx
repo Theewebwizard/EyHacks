@@ -2,6 +2,7 @@ import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import ChatInput from './ChatInput';
 import Typewriter from './Typewriter';
 import { Plus, User, Bot } from 'lucide-react';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 // Helper function to parse markdown in static messages.
 const parseMarkdown = (input) => {
@@ -67,6 +68,8 @@ const ChatContainer = () => {
     scrollToBottom();
   }, [messages]);
 
+  const { aiLevel } = useSettingsStore();
+
   const handleSendMessage = async (text) => {
     try {
       setIsLoading(true);
@@ -81,7 +84,7 @@ const ChatContainer = () => {
       const response = await fetch('http://localhost:8080/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text }),
+        body: JSON.stringify({ question: text, style: aiLevel }),
       });
       const data = await response.json();
       setMessages((prev) => [

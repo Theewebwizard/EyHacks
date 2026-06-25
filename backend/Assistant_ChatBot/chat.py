@@ -61,6 +61,7 @@ def initialize_llm():
         prompt_template = (
                 "You are a strict claims process validator. Answer ONLY using the provided context.\n\n"
                 "Context:\n{context}\n\n"
+                "Style Directives:\n{style_directives}\n\n"
                 "Response Rules:\n"
                 "1. If context contains the exact answer:\n"
                 "   1. State requirements verbatim.\n"

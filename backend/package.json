@@ -24,7 +24,7 @@
     "mongoose": "^8.10.1",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.5.0",
     "nodemailer": "^9.0.1",
     "rate-limit-redis": "^5.0.0",
     "redis": "^6.0.0",

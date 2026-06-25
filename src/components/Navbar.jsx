@@ -1,25 +1,33 @@
 import { Bell, Cog, LogOut, X, User, Sliders, Shield, Palette } from "lucide-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useStore } from "../store/useStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
   const { logout, authAgent } = useAuthStore();
+  const { claims } = useStore();
+  const { aiLevel, setAiLevel, themeAccent, setThemeAccent, audioAlerts, setAudioAlerts } = useSettingsStore();
+
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasNewNotifs, setHasNewNotifs] = useState(true);
 
-  // Custom configuration state for the Settings modal
-  const [aiLevel, setAiLevel] = useState("balanced");
-  const [themeAccent, setThemeAccent] = useState("teal");
-  const [emailAlerts, setEmailAlerts] = useState(true);
-
-  // Sample notifications data
-  const notifications = [
-    { id: 1, message: "New claim CLM-1001 assigned to you." },
-    { id: 2, message: "Saksham AI: Verification completed for CLM-1000." },
-  ];
+  // Dynamic notifications based on claims
+  const notifications = claims
+    .filter(c => c.status !== 'Resolved' && c.status !== 'Disapproved')
+    .map(c => {
+       if (c.validation_status === 'Verified') {
+         return { id: `verified-${c.claimID}`, message: `Saksham AI: Verification completed for ${c.claimID}.` };
+       } else if (c.validation_status === 'Discrepancy Found' || c.validation_status === 'Awaiting Documents') {
+         return { id: `issue-${c.claimID}`, message: `Action Required: Issues found in ${c.claimID}.` };
+       } else {
+         return { id: `new-${c.claimID}`, message: `New claim ${c.claimID} assigned to you.` };
+       }
+    })
+    .slice(0, 5);
 
   // Helper to extract initials from the agent's name
   const getInitials = (name) => {
@@ -76,17 +84,23 @@ const Navbar = () => {
                         <div className="p-4 border-b border-white/10 bg-slate-950/20">
                           <h3 className="font-bold text-white text-sm">Notifications</h3>
                         </div>
-                        <div className="p-3 flex flex-col gap-1.5">
-                          {notifications.map((notif) => (
-                            <div
-                              key={notif.id}
-                              className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200"
-                            >
-                              <p className="text-xs text-gray-300 leading-normal">
-                                {notif.message}
-                              </p>
+                        <div className="p-3 flex flex-col gap-1.5 max-h-[300px] overflow-y-auto custom-scrollbar">
+                          {notifications.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-gray-500">
+                              No new notifications
                             </div>
-                          ))}
+                          ) : (
+                            notifications.map((notif) => (
+                              <div
+                                key={notif.id}
+                                className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200"
+                              >
+                                <p className="text-xs text-gray-300 leading-normal">
+                                  {notif.message}
+                                </p>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -258,8 +272,8 @@ const Navbar = () => {
                     <span className="text-xs text-gray-300">Enable Desktop Audio Alerts on new cases</span>
                     <input
                       type="checkbox"
-                      checked={emailAlerts}
-                      onChange={(e) => setEmailAlerts(e.target.checked)}
+                      checked={audioAlerts}
+                      onChange={(e) => setAudioAlerts(e.target.checked)}
                       className="toggle toggle-success toggle-sm"
                     />
                   </label>

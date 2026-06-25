@@ -35,9 +35,17 @@ def handle_query():
     try:
         data = request.get_json()
         user_input = data.get('question', '').strip()
+        style = data.get('style', 'balanced').lower()
         
         if not user_input:
             return jsonify({"error": "Empty query"}), 400
+
+        if style == 'aggressive':
+            style_directives = "Provide exhaustive recommendations and highly detailed step-by-step guidance. Be extremely proactive."
+        elif style == 'conservative':
+            style_directives = "Only provide high confidence answers. Be extremely brief and literal. Do not add any extra guidance."
+        else:
+            style_directives = "Provide a balanced, helpful, and reasonably detailed response."
         
         # Perform fast similarity search directly (no heavy local CrossEncoder)
         results = vector_store.similarity_search_with_relevance_scores(
@@ -53,7 +61,7 @@ def handle_query():
 
         # Generate response using top 3 Pinecone results
         context = "\n".join([doc.page_content for doc, _ in results])
-        response = rag_chain.invoke({"context": context, "question": user_input})
+        response = rag_chain.invoke({"context": context, "question": user_input, "style_directives": style_directives})
         
         return jsonify({"response": response})
 

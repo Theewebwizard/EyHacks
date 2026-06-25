@@ -43,6 +43,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // handle preflight for all routes
 
+// Connect to Database and Redis BEFORE initializing the rate limiter
+await connectDB();
+await connectRedis();
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 500, // Raised from 100 — auth/check is called on every page load
@@ -82,9 +86,8 @@ const io = new Server(server, {
     }
 });
 
-server.listen(PORT, async () => {
+await connectRabbitMQ(io);
+
+server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
-    await connectDB();
-    await connectRedis();
-    await connectRabbitMQ(io);
 });
