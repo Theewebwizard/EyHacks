@@ -146,3 +146,7 @@ __pycache__/
 .vscode/
 pyrightconfig.json
 **/pyrightconfig.json
+
+# Interview markdown file
+interview.md
+
