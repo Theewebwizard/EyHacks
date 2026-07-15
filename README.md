@@ -5,6 +5,7 @@ A streaming telephony ingestion and AI-assisted supervisor workflow that couples
 ## 2. Engineering Problem
 
 This architecture addresses several integration and decoupling challenges:
+
 - **Receiving continuous telephony audio**: Ingesting inbound audio as a continuous stream from Twilio Media Streams rather than waiting for call completion.
 - **Transcribing telephony-compatible audio**: Forwarding `mulaw` audio directly to streaming Speech-to-Text (Deepgram).
 - **Processing conversational context**: Turning final caller transcripts into actionable input for an AI workflow (LangGraph) with model-driven tool routing.
@@ -16,7 +17,7 @@ This architecture addresses several integration and decoupling challenges:
 | Area | Implementation Evidence |
 | :--- | :--- |
 | **Voice ingress** | Twilio Media Streams to Python WebSocket server |
-| **Conversation orchestration**| LangGraph with model-driven tool routing |
+| **Conversation orchestration** | LangGraph with model-driven tool routing |
 | **Dashboard synchronization** | Node.js `/internal_emit` webhook triggering Socket.IO broadcasts |
 | **Document processing** | CrewAI sequential multi-agent workflow |
 | **Persistence** | MongoDB (Mongoose ODM) |
@@ -36,7 +37,7 @@ flowchart TD
     PythonWS -->|compiled_graph.invoke| LangGraph[LangGraph Engine]
     
     %% Dashboard Synchronization Path
-    LangGraph -->|AI Event / Suggestion| InternalEmit[/Node /internal_emit]
+    LangGraph -->|AI Event / Suggestion| InternalEmit["Node /internal_emit"]
     InternalEmit -->|Socket.IO| React[React Dashboard]
     
     %% Document Processing Path
@@ -56,21 +57,21 @@ flowchart TD
 
 ## 5. Runtime Process Boundaries
 
-* **Node.js Express API (`backend-node`)**: 
+- **Node.js Express API (`backend-node`)**:
   - **Responsibility**: Manages standard HTTP endpoints, MongoDB reads/writes, JWT validation, RabbitMQ publishing, and Socket.IO broadcasts.
   - **State Owned**: HTTP sessions, Socket.IO connections.
   - **Why the boundary exists**: Isolates network-bound I/O and web server operations from CPU-heavy ML tasks.
-* **Python Voice/WebSocket Process (`realtime-voice`)**: 
+- **Python Voice/WebSocket Process (`realtime-voice`)**:
   - **Responsibility**: Terminates inbound Twilio Media Streams, handles Deepgram STT bridging, executes local HuggingFace sentiment analysis, and traverses the LangGraph state machine.
   - **State Owned**: Process-global `conversation_history` and `audio_queue`.
   - **Why the boundary exists**: Keeps heavy Python ML dependencies and stateful voice streams separate from the Node.js event loop.
-* **Python RabbitMQ Worker (`python-worker`)**: 
+- **Python RabbitMQ Worker (`python-worker`)**:
   - **Responsibility**: Consumes document verification tasks, executes sequential CrewAI agents, and updates MongoDB.
   - **Why the boundary exists**: Offloads long-running, CPU-bound ML work from both the voice process and the Node API.
-* **React Frontend**: Client-side UI managing dashboard state via Zustand.
-* **MongoDB**: Persistent data store.
-* **Redis**: Rate-limiting backing store.
-* **RabbitMQ**: Asynchronous task decoupling buffer.
+- **React Frontend**: Client-side UI managing dashboard state via Zustand.
+- **MongoDB**: Persistent data store.
+- **Redis**: Rate-limiting backing store.
+- **RabbitMQ**: Asynchronous task decoupling buffer.
 
 ## 6. Voice Ingestion Pipeline — Exact Execution Trace
 
@@ -131,17 +132,17 @@ stateDiagram-v2
     reflect --> [*]
 ```
 
-* **Explicit Topology**: The graph structure is explicitly defined via `StateGraph(AgentState)` with concrete nodes (`generate`, `tools`, `reflect`).
-* **Model-Driven Runtime Routing**: The execution path is not strictly deterministic. The `router_after_generate` function examines `last_message.tool_calls`. Because the LLM dynamically decides whether to issue a tool call, the runtime route selection is inherently non-deterministic.
-* **Context Truncation**: Before invoking the model, the conversation history is aggressively truncated (`list(messages)[-6:]`) to control token consumption and manage API rate limits.
+- **Explicit Topology**: The graph structure is explicitly defined via `StateGraph(AgentState)` with concrete nodes (`generate`, `tools`, `reflect`).
+- **Model-Driven Runtime Routing**: The execution path is not strictly deterministic. The `router_after_generate` function examines `last_message.tool_calls`. Because the LLM dynamically decides whether to issue a tool call, the runtime route selection is inherently non-deterministic.
+- **Context Truncation**: Before invoking the model, the conversation history is aggressively truncated (`list(messages)[-6:]`) to control token consumption and manage API rate limits.
 
 ## 8. Tool Calling
 
 The LangGraph `tool_node` provides schema-described tool calling.
 
-* **`query_claim_status(claim_id)`**: Queries MongoDB directly to retrieve a claim's real-time status, type, and priority.
-* **`search_policy_vectors(query)`**: Queries a local FAISS index containing pre-computed policy embeddings.
-* **`schedule_task(title, description, due_date, client_email)`**: Posts a JSON payload to the Node API `/api/tasks` endpoint, generating a new scheduled task and broadcasting a Socket.IO event.
+- **`query_claim_status(claim_id)`**: Queries MongoDB directly to retrieve a claim's real-time status, type, and priority.
+- **`search_policy_vectors(query)`**: Queries a local FAISS index containing pre-computed policy embeddings.
+- **`schedule_task(title, description, due_date, client_email)`**: Posts a JSON payload to the Node API `/api/tasks` endpoint, generating a new scheduled task and broadcasting a Socket.IO event.
 
 The tool definitions use standard typed signatures, prompting the LLM to emit compatible JSON arguments. Failure within a tool generally returns an error string directly into the LangGraph state context.
 
@@ -150,6 +151,7 @@ The tool definitions use standard typed signatures, prompting the LLM to emit co
 Groq's API strictly enforces rate limits (Tokens Per Minute). The `safe_chat_invoke` wrapper handles 429 errors.
 
 **Execution Trace**:
+
 1. Try `chat.invoke(messages)`.
 2. Catch Exception. Check if error string contains "rate_limit" or "429".
 3. Wait initial delay (`delay = 3` seconds).
@@ -163,8 +165,8 @@ The Python Voice Server cannot emit Socket.IO directly to the frontend because N
 
 **Trace**: Python AI Event -> `requests.post('http://.../internal_emit')` -> Node.js Express handler -> `io.emit('event', data)` -> React listener.
 
-* **Security Gap**: The `/internal_emit` webhook in Node.js currently lacks internal authentication (e.g., mTLS, pre-shared key).
-* **Socket.IO Scaling**: Node.js currently uses the default in-process Socket.IO adapter. Multiple Node instances would not automatically share Socket.IO broadcasts without introducing a distributed adapter like Redis.
+- **Security Gap**: The `/internal_emit` webhook in Node.js currently lacks internal authentication (e.g., mTLS, pre-shared key).
+- **Socket.IO Scaling**: Node.js currently uses the default in-process Socket.IO adapter. Multiple Node instances would not automatically share Socket.IO broadcasts without introducing a distributed adapter like Redis.
 
 ## 11. Document Processing Architecture
 
@@ -207,13 +209,14 @@ The `document_crew.py` script orchestrates three specialized agents:
 
 The system utilizes RabbitMQ primarily for **asynchronous workload decoupling**. The system does not provide exactly-once or uniform at-least-once processing semantics. A worker crash before ACK can cause redelivery, while handled application exceptions are ACKed in the finally path and discarded. Non-persistent queued messages are also not guaranteed to survive broker restart.
 
-* **queue durability**: `true`. The queues themselves survive a broker restart.
-* **message persistence**: Messages are not explicitly published with `delivery_mode: 2` or `persistent: true`.
-* **auto_ack**: `false` (via library defaults). Manual acknowledgment (`basic_ack`) is used.
-* **prefetch_count**: `1` (ensures the Python worker only accepts one active CrewAI job at a time).
-* **requeue behavior**: The Python worker acknowledges messages (`basic_ack`) inside a `finally` block even if an exception occurs, meaning failed tasks are discarded rather than requeued.
+- **queue durability**: `true`. The queues themselves survive a broker restart.
+- **message persistence**: Messages are not explicitly published with `delivery_mode: 2` or `persistent: true`.
+- **auto_ack**: `false` (via library defaults). Manual acknowledgment (`basic_ack`) is used.
+- **prefetch_count**: `1` (ensures the Python worker only accepts one active CrewAI job at a time).
+- **requeue behavior**: The Python worker acknowledges messages (`basic_ack`) inside a `finally` block even if an exception occurs, meaning failed tasks are discarded rather than requeued.
 
 **Failure Matrix**:
+
 | Scenario | Current Behavior | Risk |
 | :--- | :--- | :--- |
 | Worker crashes (OOM/Segfault) before ACK | TCP connection drops. RabbitMQ re-delivers message to another worker. | Task is processed twice. |
@@ -245,14 +248,15 @@ CrewAI eventually mutates the `validation_status` and `documentAnalysis` fields 
 
 ## 15. Authentication and Authorization
 
-* **JWT Handling**: `bcryptjs` for password hashing, JWTs issued and verified in `httpOnly` cookies.
-* **Role Separation**: Enforced via distinct middleware: `protectRoute` (for BPO agents) and `protectClientRoute` (for clients).
-* **Onboarding**: A plaintext generated password is created via `crypto.randomBytes()` when a client submits their first claim, and is emailed directly to them.
+- **JWT Handling**: `bcryptjs` for password hashing, JWTs issued and verified in `httpOnly` cookies.
+- **Role Separation**: Enforced via distinct middleware: `protectRoute` (for BPO agents) and `protectClientRoute` (for clients).
+- **Onboarding**: A plaintext generated password is created via `crypto.randomBytes()` when a client submits their first claim, and is emailed directly to them.
 
 **Security Gaps**:
-* The `/internal_emit` API route lacks authentication.
-* Twilio webhook signature validation is absent.
-* Auto-generated plaintext passwords sent via email should ideally mandate a password rotation upon first login.
+
+- The `/internal_emit` API route lacks authentication.
+- Twilio webhook signature validation is absent.
+- Auto-generated plaintext passwords sent via email should ideally mandate a password rotation upon first login.
 
 ## 16. Redis and Rate Limiting
 
@@ -264,7 +268,7 @@ Redis is **not** currently configured as the Socket.IO adapter. Because Socket.I
 
 ## 17. Scheduled Claim Assignment
 
-The `backend/src/index.js` file registers a scheduled callback using `node-cron` (`*/1 * * * *`). 
+The `backend/src/index.js` file registers a scheduled callback using `node-cron` (`*/1 * * * *`).
 
 This callback executes inside the main Node.js process and initiates an asynchronous HTTP `POST` to `/api/claims/assign`. It does **not** spawn a separate OS thread, `worker_thread`, or child process.
 
@@ -278,7 +282,7 @@ The `auto_tunnel.py` script is developer tooling designed to bypass local NAT/Fi
 | :--- | :--- | :--- | :--- | :--- |
 | **Claim State** | MongoDB | Disk | Global | Application-dependent; document-level persistence does not provide task idempotency or workflow-level stale-update protection. |
 | **LangGraph Context** | Python `LLM.py` | Memory | Process-Global | High |
-| **Socket.IO Clients**| Node.js | Memory | Process-Local | High (Breaks on multi-node) |
+| **Socket.IO Clients** | Node.js | Memory | Process-Local | High (Breaks on multi-node) |
 | **RabbitMQ Tasks** | RabbitMQ | Memory | Broker-Global | Medium (Non-persistent messages) |
 
 **The Process-Global Conversation History Flaw**:
@@ -298,25 +302,27 @@ If Call A and Call B occur simultaneously, Call A's Deepgram final transcript wi
 
 ## 21. Performance and Cost Model
 
-* **Network-Bound Work**: Twilio WSS ingestion, Deepgram STT bridging, Groq API invocations, MongoDB CRUD, internal HTTP emissions.
-* **Local Process-Isolated Work**: HuggingFace sentiment analysis pipeline, LangGraph state traversal, PyTesseract OCR.
-* **Asynchronous Queue Work**: CrewAI sequential execution.
+- **Network-Bound Work**: Twilio WSS ingestion, Deepgram STT bridging, Groq API invocations, MongoDB CRUD, internal HTTP emissions.
+- **Local Process-Isolated Work**: HuggingFace sentiment analysis pipeline, LangGraph state traversal, PyTesseract OCR.
+- **Asynchronous Queue Work**: CrewAI sequential execution.
 
 ## 22. Complexity and Throughput Constraints
 
 **Verified execution shape**: the repository contains manual single-call E2E tooling; no formal concurrent-call capacity test or load test is present.
 
 **Known Code-Derived Bottlenecks**:
-* Code-derived concurrency limitation: process-global `conversation_history` does not provide session isolation across simultaneous calls.
-* Groq TPM (Tokens Per Minute) limits constrain the conversational cadence.
-* `prefetch_count=1` limits the Python worker to a single active CrewAI document verification at a time.
-* The default Socket.IO adapter limits the Node API to a single process.
+
+- Code-derived concurrency limitation: process-global `conversation_history` does not provide session isolation across simultaneous calls.
+- Groq TPM (Tokens Per Minute) limits constrain the conversational cadence.
+- `prefetch_count=1` limits the Python worker to a single active CrewAI document verification at a time.
+- The default Socket.IO adapter limits the Node API to a single process.
 
 **Potential Scale-Out Directions** (Proposed, not implemented):
-* Keying voice state by `StreamSid`.
-* Adding `@socket.io/redis-adapter` for multi-node Node API deployments.
-* Publishing RabbitMQ messages with `persistent: true` for true durability.
-* Implementing DLQ (Dead Letter Queue) topologies for failed CrewAI jobs.
+
+- Keying voice state by `StreamSid`.
+- Adding `@socket.io/redis-adapter` for multi-node Node API deployments.
+- Publishing RabbitMQ messages with `persistent: true` for true durability.
+- Implementing DLQ (Dead Letter Queue) topologies for failed CrewAI jobs.
 
 ## 23. Testing and Verification
 
@@ -335,36 +341,42 @@ The repository relies on a manual E2E test script (`trigger_call.py`) to verify 
 ## 25. Security Gaps
 
 Based on executable evidence, the current vulnerabilities are prioritized as:
-* **P0**: The `/internal_emit` Node API lacks internal authentication, allowing arbitrary internal/external network callers (if exposed) to trigger Socket.IO events.
-* **P0**: Process-global `conversation_history` allows distinct phone calls to leak PII into each other's LangGraph contexts.
-* **P1**: Auto-generated plaintext passwords sent via email do not mandate a forced reset upon first login.
-* **P1**: Twilio webhook signatures are not validated, meaning anyone can simulate a call to the webhook.
+
+- **P0**: The `/internal_emit` Node API lacks internal authentication, allowing arbitrary internal/external network callers (if exposed) to trigger Socket.IO events.
+- **P0**: Process-global `conversation_history` allows distinct phone calls to leak PII into each other's LangGraph contexts.
+- **P1**: Auto-generated plaintext passwords sent via email do not mandate a forced reset upon first login.
+- **P1**: Twilio webhook signatures are not validated, meaning anyone can simulate a call to the webhook.
 
 ## 26. Technical Debt and Roadmap
 
 **P0 (Immediate Architecture Fixes)**:
-- Isolate voice state per `StreamSid` / connection in `LLM.py`.
+
 - Secure `/internal_emit` via pre-shared key or mTLS.
+- Isolate voice state per `StreamSid` / connection in `LLM.py`.
 
 **P1 (Resilience & Semantics)**:
+
 - Explicitly mark RabbitMQ task messages as persistent.
 - Change Python worker error handling to NACK failed CrewAI tasks into a DLQ instead of ACKing them.
 - Validate Twilio webhook signatures.
 
 **P2 (Scalability & Validation)**:
+
 - Configure Redis as a distributed Socket.IO adapter to allow scaling the Node.js API horizontally.
 - Implement formal test suites (Jest/PyTest).
 
 ## 27. How to Run Locally
 
 ### Prerequisites
-* Docker & Docker Compose
-* Node.js (v18+)
-* Python 3.12+
-* Twilio Account
-* API Keys (Deepgram, Groq, Pinecone, Google)
+
+- Docker & Docker Compose
+- Node.js (v18+)
+- Python 3.12+
+- Twilio Account
+- API Keys (Deepgram, Groq, Pinecone, Google)
 
 ### 1. Clone & Install
+
 ```bash
 git clone <repository>
 cd EyHacks
@@ -373,7 +385,9 @@ cd backend && npm install
 ```
 
 ### 2. Environment Variables
+
 Create `.env` in the root directory:
+
 ```env
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
@@ -386,12 +400,15 @@ SMTP_PASS=
 ```
 
 ### 3. Run the Infrastructure
+
 ```bash
 docker compose up -d
 ```
 
 ### 4. Run the Auto-Tunnel
-*(Leave running in a separate terminal)*
+
+Note: Leave running in a separate terminal.
+
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
@@ -400,14 +417,7 @@ python3 auto_tunnel.py
 ```
 
 ### 5. Run the Frontend
+
 ```bash
 npm run dev
 ```
-
-## 28. Interview Summary
-
-**30-Second Explanation**:
-"I built a streaming telephony ingestion and document-analysis architecture for claims processing. Twilio Media Streams send raw inbound caller audio to a Python server where Deepgram creates final transcripts. These transcripts feed into an explicit LangGraph state machine, which synchronizes AI events and suggestions to a React dashboard via an internal Node.js event bridge. Separately, long-running CrewAI document analysis is decoupled from the HTTP path using RabbitMQ to prevent Node event-loop blocking."
-
-**2-Minute Technical Explanation**:
-"The architecture addresses two major decoupling challenges. First, receiving continuous telephony audio required shifting away from standard webhooks to raw Twilio WebSockets. By streaming the audio to Deepgram and feeding final transcripts into an explicit LangGraph workflow, I built an inbound pipeline that can evaluate context and push AI suggestions to a React supervisor dashboard via Node's Socket.IO server. Second, analyzing uploaded medical documents via CrewAI takes substantial time. I decoupled this entirely from the HTTP request path by publishing non-persistent RabbitMQ tasks, allowing the Node API to immediately respond to clients while isolated Python workers consume tasks and perform sequential multi-agent analysis asynchronously. I also implemented an exponential backoff wrapper in Python to handle stringent Groq API rate limits without dropping the active WebSocket connection."
