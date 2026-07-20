@@ -85,7 +85,6 @@ router.post('/', async (req, res) => {
             
             // Generate a random 8-character password
             const tempPassword = crypto.randomBytes(4).toString('hex');
-            logger.info(`DEV OVERRIDE: Auto-generated password for ${clientEmail} is: ${tempPassword}`);
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(tempPassword, salt);
             
@@ -111,31 +110,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Secure Client Login (2-Factor Verification)
-router.post('/client-login', async (req, res) => {
-    try {
-        const { claimID, clientEmail } = req.body;
-        
-        if (!claimID || !clientEmail) {
-            return res.status(400).json({ message: "Both Claim ID and Registered Email are required." });
-        }
 
-        // Must match BOTH strictly (case-insensitive for email, strict for claimID)
-        const claim = await Claim.findOne({ 
-            claimID: claimID.toUpperCase(), 
-            clientEmail: new RegExp('^' + clientEmail + '$', 'i')
-        });
-
-        if (!claim) {
-            return res.status(401).json({ message: "Access Denied: Invalid Claim ID or Email." });
-        }
-
-        res.status(200).json(claim);
-    } catch (error) {
-        logger.error("Client Login Error", { error: error.message });
-        res.status(500).json({ message: "Server error during login." });
-    }
-});
 
 // Assign claims to agents
 router.post('/assign', async (req, res) => {

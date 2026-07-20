@@ -1,11 +1,9 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import AgentSignup from './pages/AgentSignup';
-import AgentLogin from './pages/AgentLogin';
+import UnifiedLogin from './pages/UnifiedLogin';
 import AgentDash from './pages/AgentDash';
 import RealTsuggestion from './pages/RealTsuggestion';
-import ClientLogin from './pages/ClientLogin';
-import ClientSignup from './pages/ClientSignup';
 import ClientDashboard from './pages/ClientDashboard';
 import ClientPortal from './pages/ClientPortal';
 import ClaimsQueue from './pages/ClaimsQueue';
@@ -49,11 +47,11 @@ const App = () => {
             {/* Agent Routes */}
             <Route
               path="/"
-              element={authAgent ? <PageTransition><AgentDash /></PageTransition> : <Navigate to="/login" />}
+              element={authAgent ? <PageTransition><AgentDash /></PageTransition> : <Navigate to="/login?type=agent" />}
             />
             <Route
               path="/login"
-              element={!authAgent ? <PageTransition><AgentLogin /></PageTransition> : <Navigate to="/" />}
+              element={!authAgent && !authClient ? <PageTransition><UnifiedLogin /></PageTransition> : (authAgent ? <Navigate to="/" /> : <Navigate to="/client/dashboard" />)}
             />
             <Route
               path="/signup"
@@ -61,27 +59,23 @@ const App = () => {
             />
             <Route
               path="/realTs"
-              element={authAgent ? <PageTransition><RealTsuggestion /></PageTransition> : <Navigate to="/login" />}
+              element={authAgent ? <PageTransition><RealTsuggestion /></PageTransition> : <Navigate to="/login?type=agent" />}
             />
-            <Route path="/claims" element={authAgent ? <PageTransition><ClaimsQueue /></PageTransition> : <Navigate to="/login" />} />
-            <Route path="/calendar" element={authAgent ? <PageTransition><Scheduler /></PageTransition> : <Navigate to="/login" />} />
+            <Route path="/claims" element={authAgent ? <PageTransition><ClaimsQueue /></PageTransition> : <Navigate to="/login?type=agent" />} />
+            <Route path="/calendar" element={authAgent ? <PageTransition><Scheduler /></PageTransition> : <Navigate to="/login?type=agent" />} />
             
             {/* Client Routes */}
             <Route 
               path="/client/login" 
-              element={!authClient ? <PageTransition><ClientLogin /></PageTransition> : <Navigate to="/client/dashboard" />} 
-            />
-            <Route 
-              path="/client/signup" 
-              element={!authClient ? <PageTransition><ClientSignup /></PageTransition> : <Navigate to="/client/dashboard" />} 
+              element={<Navigate to="/login?type=client" />} 
             />
             <Route 
               path="/client/dashboard" 
-              element={authClient ? <PageTransition><ClientDashboard /></PageTransition> : <Navigate to="/client/login" />} 
+              element={authClient ? <PageTransition><ClientDashboard /></PageTransition> : <Navigate to="/login?type=client" />} 
             />
             <Route 
               path="/client/portal/:claimID" 
-              element={authClient ? <PageTransition><ClientPortal /></PageTransition> : <Navigate to="/client/login" />} 
+              element={authClient ? <PageTransition><ClientPortal /></PageTransition> : <Navigate to="/login?type=client" />} 
             />
             
             <Route path="/home" element={<Navigate to="/" />} />

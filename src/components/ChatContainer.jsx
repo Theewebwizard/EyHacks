@@ -1,8 +1,9 @@
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import ChatInput from './ChatInput';
 import Typewriter from './Typewriter';
-import { Plus, User, Bot } from 'lucide-react';
+import { Plus, User, Bot, Trash2 } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Helper function to parse markdown in static messages.
 const parseMarkdown = (input) => {
@@ -37,6 +38,8 @@ const parseMarkdown = (input) => {
 };
 
 const ChatContainer = () => {
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   // Lazy initialization: load messages from localStorage and disable animation on reload.
 
   const [messages, setMessages] = useState(() => {
@@ -81,7 +84,7 @@ const ChatContainer = () => {
           timestamp: new Date().toISOString(),
         },
       ]);
-      const response = await fetch('http://localhost:8080/api/query', {
+      const response = await fetch('http://localhost:5000/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: text, style: aiLevel }),
@@ -113,8 +116,13 @@ const ChatContainer = () => {
   };
 
   const handleNewChat = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearChat = () => {
     setMessages([]);
     localStorage.removeItem('chatMessages');
+    setShowClearConfirm(false);
   };
 
   return (
@@ -125,9 +133,11 @@ const ChatContainer = () => {
         className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4"
       >
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 p-6">
-            <User className="size-10 mb-3 text-emerald-400" />
-            <p className="text-sm">Welcome to Saksham AI</p>
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-50 p-6">
+            <div className="size-14 mb-4 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.05)]">
+              <User className="size-7 text-white/60" />
+            </div>
+            <p className="text-sm font-semibold text-white/70">Welcome to Saksham AI</p>
             <p className="text-xs text-gray-400 mt-1">Ask questions about claims process validation rules, status, or files.</p>
           </div>
         ) : (
@@ -146,22 +156,21 @@ const ChatContainer = () => {
                 {/* Avatar */}
                 <div className="shrink-0 mt-1">
                   {message.isBot ? (
-                    <div className="size-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white shadow-lg border border-white/20">
+                    <div className="size-8 rounded-full flex items-center justify-center text-white shadow-[0_0_12px_rgba(255,255,255,0.12)] border border-white/20 bg-white/[0.08]">
                       <Bot size={16} />
                     </div>
                   ) : (
-                    <div className="size-8 rounded-full bg-slate-700/80 flex items-center justify-center text-gray-300 border border-white/10 shadow-sm">
+                    <div className="size-8 rounded-full bg-white/[0.14] flex items-center justify-center text-gray-300 border border-white/15 shadow-sm">
                       <User size={16} />
                     </div>
                   )}
                 </div>
 
-                {/* Message Bubble */}
                 <div
-                  className={`p-4 rounded-2xl shadow-sm border transition-all duration-300 ${
+                  className={`p-4 rounded-2xl shadow-sm transition-all duration-300 ${
                     message.isBot
-                      ? 'bg-slate-900/80 backdrop-blur-md text-slate-100 border-white/10 rounded-tl-sm hover:border-white/20'
-                      : 'bg-teal-900/40 backdrop-blur-md text-teal-50 border-teal-500/30 rounded-tr-sm hover:border-teal-500/50 shadow-[0_4px_20px_rgba(20,184,166,0.1)]'
+                      ? 'chat-bubble-bot rounded-tl-sm'
+                      : 'chat-bubble-user rounded-tr-sm'
                   }`}
                 >
                   <div className="whitespace-pre-wrap text-sm leading-relaxed tracking-wide">
@@ -182,7 +191,7 @@ const ChatContainer = () => {
                   </div>
                   <div
                     className={`text-[10px] mt-2 font-medium tracking-wide flex items-center gap-1 ${
-                      message.isBot ? 'text-gray-500' : 'text-teal-400/70 justify-end'
+                      message.isBot ? 'text-gray-500' : 'text-gray-500 justify-end'
                     }`}
                   >
                     {new Date(message.timestamp).toLocaleTimeString([], {
@@ -198,18 +207,18 @@ const ChatContainer = () => {
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-slate-900/40 border border-white/10 p-3.5 rounded-2xl rounded-tl-none flex items-center space-x-1.5 shadow-sm">
+            <div className="chat-bubble-bot p-3.5 rounded-2xl rounded-tl-none flex items-center space-x-1.5 shadow-sm">
               <div
                 style={{ animationDelay: '0s' }}
-                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-white/60 rounded-full animate-thinking"
               ></div>
               <div
                 style={{ animationDelay: '0.2s' }}
-                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-white/60 rounded-full animate-thinking"
               ></div>
               <div
                 style={{ animationDelay: '0.4s' }}
-                className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-thinking"
+                className="w-1.5 h-1.5 bg-white/60 rounded-full animate-thinking"
               ></div>
             </div>
           </div>
@@ -217,10 +226,10 @@ const ChatContainer = () => {
       </div>
 
       {/* Input Bar Section */}
-      <div className="flex items-center gap-2 border-t border-white/10 pt-2 shrink-0 bg-transparent">
+        <div className="flex items-center gap-2 border-t border-white/[0.08] pt-2 shrink-0 bg-transparent">
         <button
           onClick={handleNewChat}
-          className="p-3 bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300 group flex items-center justify-center min-w-[44px] min-h-[44px]"
+          className="p-3 bg-white/[0.04] border border-white/10 text-gray-500 hover:text-white hover:bg-white/10 hover:border-white/20 rounded-2xl transition-all duration-300 group flex items-center justify-center min-w-[44px] min-h-[44px] hover:shadow-[0_0_16px_rgba(255,255,255,0.05)]"
           title="Start a New Chat"
         >
           <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
@@ -229,6 +238,53 @@ const ChatContainer = () => {
           <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
         </div>
       </div>
+
+      {/* Clear Chat Confirmation Modal */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowClearConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-sm bg-[#151515]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl z-10 flex flex-col items-center text-center font-dmsans text-white"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                <Trash2 className="size-6 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Clear Chat?</h3>
+              <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+                Are you sure you want to start a new chat? Your current conversation history will be permanently cleared.
+              </p>
+              <div className="flex gap-3 w-full justify-center">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 rounded-xl text-sm font-semibold transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClearChat}
+                  className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 rounded-xl text-sm font-semibold transition-all duration-200"
+                >
+                  Clear Chat
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

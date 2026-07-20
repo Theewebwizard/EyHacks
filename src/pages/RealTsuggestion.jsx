@@ -9,12 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const socket = io("http://localhost:5000");
 
-const themeColors = {
-  emerald: { bg: 'bg-emerald-600/10', border: 'hover:border-emerald-500/30', glow: 'via-emerald-500/50', text: 'from-emerald-300 to-teal-500', shadow: 'rgba(52,211,153,0.3)', button: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 hover:border-emerald-500/40' },
-  teal: { bg: 'bg-teal-600/10', border: 'hover:border-teal-500/30', glow: 'via-teal-500/50', text: 'from-teal-300 to-emerald-500', shadow: 'rgba(20,184,166,0.3)', button: 'bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20 hover:border-teal-500/40' },
-  blue: { bg: 'bg-blue-600/10', border: 'hover:border-blue-500/30', glow: 'via-blue-500/50', text: 'from-blue-300 to-indigo-500', shadow: 'rgba(59,130,246,0.3)', button: 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20 hover:border-blue-500/40' },
-  purple: { bg: 'bg-purple-600/10', border: 'hover:border-purple-500/30', glow: 'via-purple-500/50', text: 'from-purple-300 to-fuchsia-500', shadow: 'rgba(168,85,247,0.3)', button: 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20 hover:border-purple-500/40' },
-};
+// Monochrome theme variables removed.
 
 const SuggestionCard = ({ text, isNew, scrollToBottom }) => {
   const [displayed, setDisplayed] = useState(isNew ? "" : text);
@@ -63,10 +58,7 @@ const RealTsuggestion = () => {
   const streamRef = useRef(null);
 
   const { searchedClaim, searchClaim } = useStore();
-  const { themeAccent } = useSettingsStore();
   const [formData, setFormData] = useState({ claimID: "" });
-
-  const theme = themeColors[themeAccent] || themeColors.emerald;
 
   useEffect(() => {
     socket.on("new_suggestion", (data) => {
@@ -232,10 +224,7 @@ const RealTsuggestion = () => {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] z-1 font-dmsans pt-[6rem] md:pt-[7rem] px-4 md:px-8 gap-6 pb-6 overflow-hidden relative w-full bg-[#060b14]">
-      {/* Dynamic Background Mesh Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
-      <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full ${theme.bg} blur-[120px] pointer-events-none transition-colors duration-1000`} />
+    <div className="flex flex-col h-[100dvh] z-1 font-dmsans pt-[6rem] md:pt-[7rem] px-4 md:px-8 gap-6 pb-6 overflow-hidden relative w-full bg-transparent">
       
       {/* Sentiment Alert Banner */}
       <AnimatePresence>
@@ -258,12 +247,12 @@ const RealTsuggestion = () => {
       {/* Top Panel: Client Summary & Financial Details */}
       <motion.div 
         layout
-        className="w-full bg-white/[0.02] backdrop-blur-2xl rounded-3xl flex flex-col md:flex-row items-stretch p-6 shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/10 gap-4 md:gap-0 relative overflow-hidden"
+        className="w-full glass-card flex flex-col md:flex-row items-stretch p-6 shrink-0 gap-4 md:gap-0 relative overflow-hidden"
       >
-        <div className={`absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent ${theme.glow} to-transparent opacity-50`} />
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/20 opacity-50" />
         
         <div className="flex-[0.7] md:border-r border-white/10 md:pr-6 flex flex-col justify-center">
-           <h3 className={`text-lg md:text-xl font-bold bg-gradient-to-r ${theme.text} bg-clip-text text-transparent mb-2 flex items-center gap-2`}>Live Client Summary</h3>
+           <h3 className="text-lg md:text-xl font-bold text-white mb-2 flex items-center gap-2">Live Client Summary</h3>
            <p className="text-slate-300 text-sm md:text-md italic h-16 md:h-12 overflow-y-auto font-medium pr-2">
              {clientSummary || "Waiting for conversation details..."}
            </p>
@@ -272,7 +261,7 @@ const RealTsuggestion = () => {
            <div className="relative flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md overflow-hidden">
              <div className="absolute inset-0 bg-teal-500/5 blur-2xl pointer-events-none" />
              <span className="text-slate-400 font-bold text-xs md:text-sm uppercase tracking-wider relative z-10">Claim Amount:</span>
-             <span className={`font-bold text-md md:text-lg bg-gradient-to-r ${theme.text} bg-clip-text text-transparent relative z-10`} style={{ dropShadow: `0 0 10px ${theme.shadow}` }}>{claimAmount}</span>
+             <span className="font-bold text-md md:text-lg text-white relative z-10">{claimAmount}</span>
            </div>
            <div className="relative flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/10 backdrop-blur-md overflow-hidden">
              <div className="absolute inset-0 bg-teal-500/5 blur-2xl pointer-events-none" />
@@ -286,10 +275,9 @@ const RealTsuggestion = () => {
       <div className="flex flex-col md:flex-row w-full gap-4 flex-1 min-h-0 relative">
         
         {/* Left Column: AI Suggestions (50%) */}
-        <motion.div layout className="w-full md:w-1/2 bg-white/[0.02] backdrop-blur-3xl rounded-3xl flex flex-col h-1/2 md:h-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden relative">
-           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[60%] ${theme.bg} blur-[100px] pointer-events-none transition-colors duration-1000`} />
-           <div className="h-[4rem] w-full bg-white/[0.02] flex items-center px-6 shrink-0 border-b border-white/10 z-10">
-             <span className={`text-lg md:text-xl font-bold bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`}>RTS powered by SAKSHAM</span>
+        <motion.div layout className="w-full md:w-1/2 glass-card flex flex-col h-1/2 md:h-full overflow-hidden relative">
+           <div className="h-[4rem] w-full bg-white/5 flex items-center px-6 shrink-0 border-b border-white/10 z-10">
+             <span className="text-lg md:text-xl font-bold text-white">RTS powered by SAKSHAM</span>
            </div>
            <div ref={containerRef} className="flex-1 p-4 md:p-6 overflow-y-auto font-medium text-md md:text-lg text-slate-200 flex flex-col gap-4 z-10 custom-scrollbar">
              {suggestions.length > 0 ? (
@@ -300,7 +288,7 @@ const RealTsuggestion = () => {
                    key={i} 
                    className={`p-5 rounded-2xl border transition-all duration-300 ${
                      i === suggestions.length - 1 
-                       ? `bg-white/[0.04] border-white/20 shadow-[0_0_20px_${theme.shadow}]` 
+                       ? "bg-white/10 border-white/20 shadow-sm" 
                        : 'bg-black/20 border-white/5 opacity-70 hover:opacity-100'
                    }`}
                  >
@@ -336,11 +324,10 @@ const RealTsuggestion = () => {
         </motion.div>
 
         {/* Right Column: Live Transcription (50%) */}
-        <motion.div layout className="w-full md:w-1/2 bg-white/[0.02] backdrop-blur-3xl rounded-3xl flex flex-col h-1/2 md:h-full border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] relative overflow-hidden">
-           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[60%] ${theme.bg} blur-[100px] pointer-events-none transition-colors duration-1000`} />
-           <div className="h-[4rem] w-full bg-white/[0.02] flex items-center justify-between px-4 md:px-6 shrink-0 border-b border-white/10 z-10">
-             <span className="text-lg md:text-xl font-bold text-slate-200 flex items-center gap-2">
-               <Captions size={24} className="text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]"/> Live Transcript
+        <motion.div layout className="w-full md:w-1/2 glass-card flex flex-col h-1/2 md:h-full relative overflow-hidden">
+           <div className="h-[4rem] w-full bg-white/5 flex items-center justify-between px-4 md:px-6 shrink-0 border-b border-white/10 z-10">
+             <span className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+               <Captions size={24} className="text-gray-400" /> Live Transcript
              </span>
              
              {/* Open Drawer Button */}
@@ -348,7 +335,7 @@ const RealTsuggestion = () => {
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                onClick={() => setIsDrawerOpen(true)} 
-               className={`px-3 md:px-4 py-2 min-h-[44px] min-w-[44px] rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-all border ${theme.button}`}
+               className="btn-pill-primary px-3 md:px-4 py-2 min-h-[44px] min-w-[44px] rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 transition-all border-none"
              >
                <Briefcase size={18} />
                <span className="hidden md:inline">Case Tools</span>
@@ -369,7 +356,7 @@ const RealTsuggestion = () => {
                     key={i} 
                     className="bg-black/20 backdrop-blur-sm p-4 md:p-5 rounded-2xl border border-white/5 shadow-sm hover:border-white/10 transition-all"
                   >
-                    <span className={`font-bold text-xs uppercase tracking-wider mb-2 block bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`}>Snippet</span>
+                    <span className="font-bold text-xs uppercase tracking-wider mb-2 block text-white">Snippet</span>
                     <p className="leading-relaxed font-medium">{txt}</p>
                   </motion.div>
                 ))
@@ -395,13 +382,12 @@ const RealTsuggestion = () => {
                    animate={{ x: 0 }}
                    exit={{ x: "100%" }}
                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                   className="fixed md:absolute top-0 right-0 h-full w-[85%] md:w-[85%] lg:w-[70%] max-w-md bg-[#060b14]/95 backdrop-blur-3xl border-l border-white/10 shadow-[-10px_0_40px_rgba(0,0,0,0.8)] z-50 flex flex-col rounded-l-3xl md:rounded-l-none md:rounded-r-3xl overflow-hidden"
+                   className="fixed md:absolute top-0 right-0 h-full w-[85%] md:w-[85%] lg:w-[70%] max-w-md bg-black/95 backdrop-blur-3xl border-l border-white/10 shadow-[-10px_0_40px_rgba(0,0,0,0.8)] z-50 flex flex-col rounded-l-3xl md:rounded-l-none md:rounded-r-3xl overflow-hidden"
                  >
-                   <div className={`absolute top-0 right-0 w-[80%] h-[50%] rounded-full ${theme.bg} blur-[100px] pointer-events-none transition-colors duration-1000`} />
                    
-                   <div className="flex justify-between items-center p-6 border-b border-white/10 bg-white/[0.02] shrink-0 z-10">
+                   <div className="flex justify-between items-center p-6 border-b border-white/10 bg-white/5 shrink-0 z-10">
                      <h2 className="text-xl font-bold text-slate-200 flex items-center gap-3">
-                       <Briefcase size={22} className={`bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`} style={{ dropShadow: `0 0 8px ${theme.shadow}` }}/> Case Tools
+                       <Briefcase size={22} className="text-white" /> Case Tools
                      </h2>
                      <button 
                        onClick={() => setIsDrawerOpen(false)} 
@@ -429,7 +415,7 @@ const RealTsuggestion = () => {
                              whileHover={{ scale: 1.05 }}
                              whileTap={{ scale: 0.95 }}
                              type="submit" 
-                             className={`min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center transition-all border ${theme.button}`}
+                             className="btn-pill-primary min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center transition-all border-none"
                            >
                              <Search size={20}/>
                            </motion.button>
@@ -440,7 +426,7 @@ const RealTsuggestion = () => {
                               <div className="text-sm text-slate-300 space-y-3">
                                 <div className="flex justify-between border-b border-white/10 pb-3">
                                   <strong className="text-slate-200">ID:</strong> 
-                                  <span className={`font-mono font-bold tracking-wider bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`}>{searchedClaim.claimID}</span>
+                                  <span className="font-mono font-bold tracking-wider text-white">{searchedClaim.claimID}</span>
                                 </div>
                                 <div>
                                   <strong className="text-white block mb-1.5">Client Name:</strong> 
@@ -466,7 +452,7 @@ const RealTsuggestion = () => {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setIsFormVisible(!isFormVisible)} 
-                          className={`w-full py-3 min-h-[44px] rounded-xl font-bold transition-all border ${theme.button}`}
+                          className="btn-pill-primary w-full py-3 min-h-[44px] rounded-xl font-bold transition-all border-none"
                         >
                           {isFormVisible ? "Close Form" : "Create New Claim"}
                         </motion.button>
@@ -501,7 +487,7 @@ const RealTsuggestion = () => {
                                      whileHover={{ scale: 1.02 }}
                                      whileTap={{ scale: 0.98 }}
                                      type="submit" 
-                                     className={`w-full min-h-[44px] py-3 rounded-xl font-bold transition-all mt-4 border ${theme.button}`}
+                                     className="btn-pill-primary w-full min-h-[44px] py-3 rounded-xl font-bold transition-all mt-4 border-none"
                                    >
                                      Submit Claim
                                    </motion.button>
@@ -527,7 +513,7 @@ const RealTsuggestion = () => {
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
                            onClick={handleStartSaksham} 
-                           className={`w-full min-h-[44px] py-4 rounded-2xl font-extrabold transition-all uppercase tracking-wider border ${isRecording ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' : theme.button}`}
+                           className={`w-full min-h-[44px] py-4 rounded-2xl font-extrabold transition-all uppercase tracking-wider border-none ${isRecording ? 'btn-pill-danger' : 'btn-pill-primary'}`}
                          >
                            {isRecording ? "Stop SAKSHAM Voice" : "Start SAKSHAM Voice"}
                          </motion.button>

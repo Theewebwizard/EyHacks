@@ -22,9 +22,32 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: function (req, file, cb) {
+        const allowedMimeTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+        const extname = path.extname(file.originalname).toLowerCase();
+        const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+        
+        if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(extname)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only PDFs and images (PNG, JPG, JPEG) are allowed.'));
+        }
+    }
+});
 
-router.post('/upload/:claimID', upload.single('document'), async (req, res) => {
+router.post('/upload/:claimID', (req, res, next) => {
+    upload.single('document')(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ error: `Upload error: ${err.message}` });
+        } else if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        next();
+    });
+}, async (req, res) => {
     try {
         const claim = await Claim.findOne({ claimID: req.params.claimID });
         if (!claim) {

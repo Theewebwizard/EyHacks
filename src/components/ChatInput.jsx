@@ -32,8 +32,8 @@ const ChatInput = ({ onSend, isLoading }) => {
           <div
             className={`w-full rounded-2xl p-[1px] transition-all duration-300 ${
               isFocused
-                ? 'bg-gradient-to-r from-blue-500 to-emerald-500 shadow-[0_0_15px_rgba(52,211,153,0.2)]'
-                : 'bg-white/10 hover:bg-white/15'
+                ? 'bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.06)]'
+                : 'bg-white/[0.06] hover:bg-white/[0.09]'
             }`}
           >
             <input
@@ -45,13 +45,13 @@ const ChatInput = ({ onSend, isLoading }) => {
               disabled={isLoading}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              className="w-full px-4 py-2.5 rounded-[15px] bg-slate-950 text-sm text-white placeholder-gray-400 border-0 focus:outline-none focus:ring-0"
+              className="w-full px-4 py-2.5 rounded-[15px] bg-[#0d0d0d] text-sm text-white placeholder-gray-500 border-0 focus:outline-none focus:ring-0"
             />
           </div>
         </div>
         <button
           type="submit"
-          className="p-3 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white rounded-2xl transition-all duration-300 shadow-md hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 flex items-center justify-center min-w-[44px] min-h-[44px]"
+          className="p-3 bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.12] text-white rounded-2xl transition-all duration-300 shadow-md hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 flex items-center justify-center min-w-[44px] min-h-[44px]"
           disabled={!text.trim() || isLoading}
         >
           <Send className="size-4" />

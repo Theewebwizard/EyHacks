@@ -19,50 +19,58 @@ const HomePage = () => {
     console.log("Uploaded Files:", files);
   };
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-900">
-      <div className="flex flex-row container w-full max-w-7xl justify-between">
-        <div className="w-200 h-125 rounded-3xl flex items-center justify-center bg-gray-800">
-          <form className="w-full p-5 h-full" onSubmit={handleSubmit}>
-            <h2 className="text-white text-2xl font-semibold mb-4">
+    <div className="flex items-center justify-center h-screen bg-transparent p-4">
+      <div className="flex flex-col md:flex-row container w-full max-w-7xl justify-center items-center gap-8">
+        <div className="glass-card w-full max-w-2xl flex flex-col p-8">
+          <form className="w-full h-full space-y-6" onSubmit={handleSubmit}>
+            <h2 className="text-white text-3xl font-extrabold mb-6">
               Upload Your Claim Documents
             </h2>
 
             {/* Document 1 */}
-            <label className="block text-gray-400 mb-1">Document 1</label>
-            <input
-              type="file"
-              onChange={(e) => handleFileChange(e, "doc1")}
-              className="w-full p-3 bg-black text-white rounded-lg mb-3 focus:outline-none"
-            />
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Document 1</label>
+              <input
+                type="file"
+                onChange={(e) => handleFileChange(e, "doc1")}
+                className="input-dark w-full"
+              />
+            </div>
 
             {/* Document 2 */}
-            <label className="block text-gray-400 mb-1">Document 2</label>
-            <input
-              type="file"
-              onChange={(e) => handleFileChange(e, "doc2")}
-              className="w-full p-3 bg-black text-white rounded-lg mb-3 focus:outline-none"
-            />
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Document 2</label>
+              <input
+                type="file"
+                onChange={(e) => handleFileChange(e, "doc2")}
+                className="input-dark w-full"
+              />
+            </div>
 
             {/* Description */}
-            <label className="block text-gray-400 mb-1">Description</label>
-            <textarea
-              rows="4"
-              value={files.description}
-              onChange={handleDescriptionChange}
-              className="w-full p-3 bg-black text-white rounded-lg focus:outline-none"
-              placeholder="Enter description..."
-            ></textarea>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Description</label>
+              <textarea
+                rows="4"
+                value={files.description}
+                onChange={handleDescriptionChange}
+                className="input-dark w-full resize-none"
+                placeholder="Enter description..."
+              ></textarea>
+            </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-orange-500 text-white font-semibold py-3 mt-4 rounded-full hover:bg-orange-700 transition"
+              className="w-full btn-pill-primary py-3.5 rounded-xl font-bold mt-4"
             >
-              Submit
+              Submit Documents
             </button>
           </form>
         </div>
-        <div className="bg-gray-500 w-100 h-150 rounded-3xl"></div>
+        <div className="glass-card w-full max-w-md h-[400px] flex items-center justify-center p-8 hidden md:flex">
+           <p className="text-gray-400 font-medium">Additional Information / Preview</p>
+        </div>
       </div>
     </div>
   );

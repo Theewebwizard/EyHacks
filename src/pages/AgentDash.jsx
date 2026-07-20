@@ -7,13 +7,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import GlowEffect from "../components/GlowEffect";
 
-const themeColors = {
-  emerald: { bg: 'bg-emerald-600/10', border: 'hover:border-emerald-500/30', glow: 'via-emerald-500/50', text: 'from-emerald-300 to-teal-500', shadow: 'rgba(52,211,153,0.3)', button: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 hover:border-emerald-500/40' },
-  teal: { bg: 'bg-teal-600/10', border: 'hover:border-teal-500/30', glow: 'via-teal-500/50', text: 'from-teal-300 to-emerald-500', shadow: 'rgba(20,184,166,0.3)', button: 'bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border-teal-500/20 hover:border-teal-500/40' },
-  blue: { bg: 'bg-blue-600/10', border: 'hover:border-blue-500/30', glow: 'via-blue-500/50', text: 'from-blue-300 to-indigo-500', shadow: 'rgba(59,130,246,0.3)', button: 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20 hover:border-blue-500/40' },
-  purple: { bg: 'bg-purple-600/10', border: 'hover:border-purple-500/30', glow: 'via-purple-500/50', text: 'from-purple-300 to-fuchsia-500', shadow: 'rgba(168,85,247,0.3)', button: 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20 hover:border-purple-500/40' },
-};
-
+// Monochrome theme variables removed.
 const playPing = () => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -35,10 +29,8 @@ const playPing = () => {
 const AgentDash = () => {
   const { authAgent } = useAuthStore();
   const { fetchClaims, claims, resolveClaim } = useStore();
-  const { themeAccent, audioAlerts } = useSettingsStore();
-  const prevClaimsCount = useRef(claims.length);
-
-  const theme = themeColors[themeAccent] || themeColors.emerald;
+  const { audioAlerts } = useSettingsStore();
+  const prevClaimsCount = useRef(0);
 
   useEffect(() => {
     if (authAgent && authAgent.agentID) {
@@ -75,48 +67,41 @@ const AgentDash = () => {
     .slice(0, 5);
 
   return (
-    <div className="w-full h-[100dvh] bg-[#060b14] relative overflow-y-auto md:overflow-hidden flex flex-col px-4 md:px-6 pt-24 pb-8 gap-6 font-dmsans">
-      {/* Dynamic Background Mesh Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
-      <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full ${theme.bg} blur-[120px] pointer-events-none transition-colors duration-1000`} />
+    <div className="w-full h-[100dvh] bg-transparent relative overflow-y-auto md:overflow-hidden flex flex-col px-4 md:px-6 pt-24 pb-8 gap-6 font-dmsans">
       
       {/* KPI Row (Top, full width) */}
       <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 z-10 shrink-0">
         
-        {/* Active Claims Token (Dynamic Theme) */}
-        <div className={`group relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-500 hover:-translate-y-1 hover:bg-white/[0.04] ${theme.border}`}>
-          <div className={`absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent ${theme.glow} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-          <h3 className="text-sm font-medium text-slate-400 tracking-wide uppercase mb-1">Active Claims</h3>
-          <div className={`text-5xl font-bold bg-gradient-to-br ${theme.text} bg-clip-text text-transparent`} style={{ dropShadow: `0 0 15px ${theme.shadow}` }}>
-            {activeClaimsCount}
-          </div>
+        {/* Active Claims Token */}
+        <div className="group relative overflow-hidden glass-card p-5 glass-card-hover">
+          <div className="stat-glow-blob w-32 h-32 top-0 right-0 bg-white" style={{opacity:0.12}} />
+          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">Active Claims</h3>
+          <div className="text-5xl font-bold text-white glow-text">{activeClaimsCount}</div>
+          <div className="mt-2 text-xs text-gray-500 font-medium">Assigned to you</div>
         </div>
 
         {/* Calls Made Token */}
-        <div className="group relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-500 hover:-translate-y-1 hover:border-blue-500/30 hover:bg-white/[0.04]">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <h3 className="text-sm font-medium text-slate-400 tracking-wide uppercase mb-1">Activity Today</h3>
-          <div className="text-5xl font-bold bg-gradient-to-br from-blue-300 to-indigo-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(96,165,250,0.3)]">
-            {callsToday}
-          </div>
+        <div className="group relative overflow-hidden glass-card p-5 glass-card-hover">
+          <div className="stat-glow-blob w-28 h-28 top-0 right-0 bg-white" style={{opacity:0.08}} />
+          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">Activity Today</h3>
+          <div className="text-5xl font-bold text-white glow-text">{callsToday}</div>
+          <div className="mt-2 text-xs text-gray-500 font-medium">Files with summaries</div>
         </div>
 
         {/* Satisfaction Token */}
-        <div className="group relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-500 hover:-translate-y-1 hover:border-violet-500/30 hover:bg-white/[0.04]">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <h3 className="text-sm font-medium text-slate-400 tracking-wide uppercase mb-1">Satisfaction</h3>
-          <div className="text-xl font-bold mt-3 bg-gradient-to-br from-violet-300 to-purple-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(167,139,250,0.3)]">
-            {satisfactionText}
-          </div>
+        <div className="group relative overflow-hidden glass-card p-5 glass-card-hover">
+          <div className="stat-glow-blob w-24 h-24 top-0 right-0 bg-white" style={{opacity:0.07}} />
+          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">Satisfaction</h3>
+          <div className="text-xl font-bold mt-3 text-white glow-text">{satisfactionText}</div>
+          <div className="mt-2 text-xs text-gray-500 font-medium">From client ratings</div>
         </div>
 
         {/* Pending Token */}
-        <div className="group relative overflow-hidden bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-all duration-500 hover:-translate-y-1 hover:border-rose-500/30 hover:bg-white/[0.04]">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-rose-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <h3 className="text-sm font-medium text-slate-400 tracking-wide uppercase mb-1">Pending Review</h3>
-          <div className="text-5xl font-bold bg-gradient-to-br from-rose-300 to-red-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(251,113,133,0.3)]">
-            {pendingClaimsCount}
-          </div>
+        <div className="group relative overflow-hidden glass-card p-5 glass-card-hover">
+          <div className="stat-glow-blob w-28 h-28 top-0 right-0 bg-amber-400" style={{opacity:0.10}} />
+          <h3 className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">Pending Review</h3>
+          <div className="text-5xl font-bold text-white glow-text">{pendingClaimsCount}</div>
+          <div className="mt-2 text-xs text-amber-500/70 font-medium">Awaiting AI analysis</div>
         </div>
 
       </div>
@@ -125,10 +110,10 @@ const AgentDash = () => {
       <div className="w-full flex flex-col md:flex-row gap-6 flex-1 min-h-0 z-10">
         
         {/* Claims Queue (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden min-h-[400px] md:min-h-0">
+        <div className="flex-1 flex flex-col glass-card overflow-hidden min-h-[400px] md:min-h-0">
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01] shrink-0">
             <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-              <FileUser className="w-5 h-5 text-blue-400" /> Claims Pipeline
+              <FileUser className="w-5 h-5 text-gray-400" /> Claims Pipeline
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
@@ -141,10 +126,10 @@ const AgentDash = () => {
               </div>
             ) : (
               claims.map((claim) => (
-                <div key={claim.claimID} className={`group p-4 bg-slate-900/40 rounded-2xl border border-white/[0.03] hover:bg-slate-800/40 transition-all duration-300 shrink-0 ${theme.border}`}>
+                <div key={claim.claimID} className="group p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all duration-300 shrink-0">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+                      <span className="badge-pill mb-2">
                         {claim.claimID}
                       </span>
                       <h3 className="text-slate-200 font-medium">{claim.clientName}</h3>
@@ -172,10 +157,10 @@ const AgentDash = () => {
                     <div className="mt-4 flex gap-2">
                       {claim.validation_status === 'Verified' ? (
                         <>
-                          <button onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Resolved')} className={`flex-1 py-2 border rounded-xl font-medium text-xs transition-all ${theme.button}`}>
+                          <button onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Resolved')} className="flex-1 btn-pill-primary py-2 rounded-xl text-xs">
                             Approve
                           </button>
-                          <button onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Disapproved')} className="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/40 rounded-xl font-medium text-xs transition-all">
+                          <button onClick={() => resolveClaim(claim.claimID, authAgent.agentID, 'Disapproved')} className="flex-1 btn-pill-danger py-2 rounded-xl text-xs">
                             Disapprove
                           </button>
                         </>
@@ -194,10 +179,10 @@ const AgentDash = () => {
         </div>
 
         {/* Feedback Queue (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden min-h-[300px] md:min-h-0">
+        <div className="flex-1 flex flex-col glass-card overflow-hidden min-h-[300px] md:min-h-0">
           <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01] shrink-0">
             <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-              <span className="text-amber-400 text-xl">★</span> Recent Feedback
+              <span className="text-gray-400 text-xl">★</span> Recent Feedback
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
@@ -207,13 +192,13 @@ const AgentDash = () => {
               </div>
             ) : (
               recentFeedbacks.map((c, idx) => (
-                <div key={idx} className="p-5 bg-gradient-to-br from-slate-900/60 to-slate-800/40 rounded-2xl border border-white/[0.05] hover:border-white/10 transition-all duration-300 relative overflow-hidden shrink-0">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+                <div key={idx} className="p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all duration-300 relative overflow-hidden shrink-0">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex items-center justify-between mb-3 relative z-10">
                     <h3 className="font-semibold text-slate-200">{c.clientName || 'Client'}</h3>
                     <div className="flex gap-0.5">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-xs ${i < c.feedback.rating ? 'text-amber-400' : 'text-slate-700'}`}>★</span>
+                        <span key={i} className={`text-xs ${i < c.feedback.rating ? 'text-gray-300' : 'text-gray-700'}`}>★</span>
                       ))}
                     </div>
                   </div>
@@ -230,16 +215,16 @@ const AgentDash = () => {
         </div>
 
         {/* AI Assistant Sidebar (1/3) */}
-        <div className="flex-1 flex flex-col bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden relative min-h-[500px] md:min-h-0">
-          {/* Subtle glow behind the chat */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[60%] ${theme.bg} blur-[100px] pointer-events-none transition-colors duration-1000`} />
+        <div className="flex-1 flex flex-col glass-card overflow-hidden relative min-h-[500px] md:min-h-0">
           
-          <div className="px-6 py-5 border-b border-white/10 bg-white/[0.02] flex items-center gap-3 z-10 shrink-0">
-            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${theme.text} flex items-center justify-center shadow-lg shadow-[${theme.shadow}]`}>
-              <Headset className="w-5 h-5 text-slate-900" />
+          <div className="px-6 py-5 border-b border-white/[0.08] flex items-center gap-3 z-10 shrink-0"
+            style={{background:'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)'}}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border border-white/20 shadow-[0_0_16px_rgba(255,255,255,0.08)]"
+              style={{background:'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.06) 100%)'}}>
+              <Headset className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className={`text-lg font-bold bg-gradient-to-r ${theme.text} bg-clip-text text-transparent`}>Ask Saksham AI</h2>
+              <h2 className="text-lg font-bold text-white">Ask Saksham AI</h2>
               <p className="text-xs text-slate-400">Agent Co-Pilot</p>
             </div>
           </div>

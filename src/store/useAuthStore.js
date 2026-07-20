@@ -32,7 +32,7 @@ export const useAuthStore = create((set, get) => ({
             toast.success("succesfully signed up");
             set({ authAgent: response.data });
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Signup failed");
         } finally {
             set({ isSigningUp: false });
         }
@@ -47,7 +47,7 @@ export const useAuthStore = create((set, get) => ({
             set({ authAgent: res.data });
 
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Login failed");
         } finally {
             set({ isLoggingIn: false });
         }
@@ -60,7 +60,18 @@ export const useAuthStore = create((set, get) => ({
             set({ authAgent: null });
 
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Logout failed");
+        }
+    },
+
+    forgotPassword: async (agentID) => {
+        try {
+            await axiosInstance.post("/auth/forgot-password", { agentID });
+            toast.success("A temporary password has been emailed or logged.");
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to reset password");
+            return false;
         }
     },
 }));

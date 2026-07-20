@@ -133,3 +133,65 @@ export const sendAccountCreationEmail = async (clientEmail, tempPassword, claimI
         logger.error(`Failed to send account creation email to ${clientEmail}. SMTP not configured or failed`, { error: error.message });
     }
 };
+
+export const sendForgotPasswordEmail = async (clientEmail, tempPassword) => {
+    try {
+        const mailOptions = {
+            from: '"SAKSHAM AI Support" <support@saksham.ai>',
+            to: clientEmail,
+            subject: `Your SAKSHAM AI Account Password Reset`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Hello,</h2>
+                    <p>We received a request to reset the password for your Client Portal account.</p>
+                    <p>We have generated a new temporary password for you:</p>
+                    <div style="padding: 15px; background-color: #f3f4f6; border-left: 4px solid #10b981; margin: 20px 0;">
+                        <p><strong>Your Temporary Credentials:</strong></p>
+                        <p><strong>Email:</strong> ${clientEmail}</p>
+                        <p><strong>Password:</strong> ${tempPassword}</p>
+                    </div>
+                    <p>Please log in to the <a href="http://localhost:5173/login">Client Portal</a> and change your password as soon as possible.</p>
+                    <br/>
+                    <p>Best regards,</p>
+                    <p><strong>SAKSHAM AI Support Team</strong></p>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        logger.info(`Password reset email sent to ${clientEmail}`, { messageId: info.messageId });
+    } catch (error) {
+        logger.error(`Failed to send password reset email to ${clientEmail}. SMTP not configured or failed`, { error: error.message });
+    }
+};
+
+export const sendAgentForgotPasswordEmail = async (agentEmail, tempPassword) => {
+    try {
+        const mailOptions = {
+            from: '"SAKSHAM AI Support" <support@saksham.ai>',
+            to: agentEmail,
+            subject: `Your SAKSHAM AI Agent Portal Password Reset`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Hello,</h2>
+                    <p>We received a request to reset the password for your Agent Terminal account.</p>
+                    <p>We have generated a new temporary password for you:</p>
+                    <div style="padding: 15px; background-color: #f3f4f6; border-left: 4px solid #3b82f6; margin: 20px 0;">
+                        <p><strong>Your Temporary Credentials:</strong></p>
+                        <p><strong>Agent ID / Email:</strong> ${agentEmail}</p>
+                        <p><strong>Password:</strong> ${tempPassword}</p>
+                    </div>
+                    <p>Please log in to the <a href="http://localhost:5173/login">Agent Terminal</a> and change your password immediately.</p>
+                    <br/>
+                    <p>Best regards,</p>
+                    <p><strong>SAKSHAM AI Support Team</strong></p>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        logger.info(`Agent password reset email sent to ${agentEmail}`, { messageId: info.messageId });
+    } catch (error) {
+        logger.error(`Failed to send agent password reset email to ${agentEmail}. SMTP not configured or failed`, { error: error.message });
+    }
+};

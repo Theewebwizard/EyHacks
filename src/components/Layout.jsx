@@ -12,13 +12,14 @@ const Layout = ({ children }) => {
   const location = useLocation();
 
   const isClientRoute = location.pathname.startsWith('/client');
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup';
 
   return (
     <div className="min-h-screen w-full bg-transparent text-white overflow-x-hidden font-dmsans">
-      {/* Show Navbar only if NOT on a Client route */}
-      {!isClientRoute && <Navbar />}
+      {/* Show Navbar only if NOT on a Client route and NOT on an Auth route */}
+      {!isClientRoute && !isAuthRoute && <Navbar />}
       
-      {authAgent && !isClientRoute && (
+      {authAgent && !isClientRoute && !isAuthRoute && (
         <>
           {/* Mobile Header Toggle */}
           <div className="md:hidden fixed top-0 left-0 w-full h-[4rem] z-50 flex items-center px-4 bg-transparent pointer-events-none">

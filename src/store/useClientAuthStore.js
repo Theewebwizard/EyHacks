@@ -19,16 +19,14 @@ export const useClientAuthStore = create((set, get) => ({
         }
     },
 
-    signup: async (data) => {
-        set({ isSigningUp: true });
+    forgotPassword: async (email) => {
         try {
-            const res = await axiosInstance.post("/client-auth/signup", data);
-            set({ authClient: res.data });
-            toast.success("Account created successfully");
+            await axiosInstance.post("/client-auth/forgot-password", { email });
+            toast.success("A temporary password has been emailed to you.");
+            return true;
         } catch (error) {
-            toast.error(error.response.data.message);
-        } finally {
-            set({ isSigningUp: false });
+            toast.error(error.response?.data?.message || "Failed to reset password");
+            return false;
         }
     },
 
@@ -39,7 +37,7 @@ export const useClientAuthStore = create((set, get) => ({
             set({ authClient: res.data });
             toast.success("Logged in successfully");
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Login failed");
         } finally {
             set({ isLoggingIn: false });
         }
@@ -55,7 +53,7 @@ export const useClientAuthStore = create((set, get) => ({
             localStorage.removeItem('clientClaimID');
             localStorage.removeItem('clientEmail');
         } catch (error) {
-            toast.error(error.response.data.message);
+            toast.error(error.response?.data?.message || "Logout failed");
         }
     },
 }));

@@ -5,7 +5,7 @@ import { useClientAuthStore } from '../store/useClientAuthStore';
 import toast from 'react-hot-toast';
 import { FileUp, MessageSquare, LogOut, FileText, ArrowLeft } from 'lucide-react';
 import Typewriter from '../components/Typewriter';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const parseMarkdown = (input) => {
   const lines = input.split('\n');
@@ -37,6 +37,7 @@ const ClientPortal = () => {
   const [claim, setClaim] = useState(null);
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
   // Feedback state
@@ -121,7 +122,7 @@ const ClientPortal = () => {
   };
 
   const handleLogout = () => {
-    logout();
+    setShowLogoutConfirm(true);
   };
 
   const handleFileChange = (e) => {
@@ -162,7 +163,7 @@ const ClientPortal = () => {
     setIsChatLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/api/query', {
+      const response = await fetch('http://localhost:5000/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: text, role: 'client' })
@@ -184,7 +185,7 @@ const ClientPortal = () => {
   if (!claim) return <div className="h-[100dvh] flex items-center justify-center text-white bg-slate-900">Loading...</div>;
 
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-black font-dmsans p-4 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 text-white pt-10 md:pt-8 w-full overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-transparent font-dmsans p-4 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 text-white pt-10 md:pt-8 w-full overflow-x-hidden">
       {/* Left Column: Dashboard & Upload */}
       <div className="w-full md:w-1/2 flex flex-col gap-6 md:gap-8">
         
@@ -192,14 +193,14 @@ const ClientPortal = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+          className="glass-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
         >
           <div>
             <div className="flex items-center gap-2 mb-1">
               <button onClick={() => navigate('/client/dashboard')} className="text-gray-400 hover:text-white transition-colors mr-2">
                 <ArrowLeft size={20} />
               </button>
-              <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(20,184,166,0.3)]">Client Portal</h1>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-white">Client Portal</h1>
             </div>
             <p className="text-gray-300 mt-1 text-sm md:text-base ml-8">Welcome, <span className="font-semibold text-white">{claim.clientName}</span></p>
             <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1 ml-8">✉️ {authClient?.email}</p>
@@ -208,9 +209,9 @@ const ClientPortal = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout} 
-            className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-xl transition-all border border-red-500/30"
+            className="btn-pill-danger !py-2.5 !px-5 flex items-center justify-center gap-2"
           >
-            <LogOut size={18} /> <span className="hidden sm:inline">Logout</span>
+            <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
           </motion.button>
         </motion.div>
 
@@ -219,7 +220,7 @@ const ClientPortal = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-slate-900/40 backdrop-blur-md p-6 md:p-8 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 flex-1"
+          className="glass-card p-6 md:p-8 flex-1"
         >
           <h2 className="text-xl md:text-2xl font-bold mb-6 border-b border-white/10 pb-3">Claim Status Tracker</h2>
           
@@ -302,7 +303,7 @@ const ClientPortal = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10"
+            className="glass-card p-6"
           >
             <h2 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2">
               <span className="text-yellow-400">★</span> Share Your Experience
@@ -363,7 +364,7 @@ const ClientPortal = () => {
                   whileTap={{ scale: 0.98 }}
                   type="submit" 
                   disabled={isSubmittingFeedback || !feedbackComments.trim()}
-                  className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white min-h-[44px] rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(52,211,153,0.2)] border-0"
+                  className="btn-pill-primary w-full min-h-[44px] rounded-xl font-bold transition-all border-none"
                 >
                   {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
                 </motion.button>
@@ -375,7 +376,7 @@ const ClientPortal = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10"
+            className="glass-card p-6"
           >
             <h2 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2"><FileUp className="text-blue-400"/> Upload Documents</h2>
             <form onSubmit={handleUpload} className="flex flex-col sm:flex-row gap-4 items-center">
@@ -389,7 +390,7 @@ const ClientPortal = () => {
                 whileTap={{ scale: 0.95 }}
                 type="submit" 
                 disabled={isUploading || !file}
-                className="w-full sm:w-auto bg-blue-600/90 hover:bg-blue-500 disabled:opacity-50 text-white min-h-[44px] px-8 py-2.5 rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)] border border-blue-500/50"
+                className="btn-pill-primary w-full sm:w-auto min-h-[44px] px-8 py-2.5 rounded-xl font-bold transition-colors border-none disabled:opacity-50"
               >
                 {isUploading ? 'Uploading...' : 'Submit'}
               </motion.button>
@@ -404,10 +405,10 @@ const ClientPortal = () => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
-        className="w-full md:w-1/2 bg-slate-900/40 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/10 flex flex-col h-[500px] md:h-auto"
+        className="w-full md:w-1/2 glass-card p-4 md:p-6 flex flex-col h-[500px] md:h-auto"
       >
         <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2 pb-4 border-b border-white/10 shrink-0">
-          <MessageSquare className="text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.5)]"/> Client Support Chat
+          <MessageSquare className="text-gray-400" /> Client Support Chat
         </h2>
         
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2 custom-scrollbar">
@@ -423,8 +424,8 @@ const ClientPortal = () => {
             <div key={idx} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[90%] md:max-w-[85%] p-4 text-sm md:text-base rounded-2xl border transition-all duration-300 ${
                 msg.isBot 
-                  ? 'bg-slate-900/60 text-slate-100 border-white/10 rounded-tl-none hover:border-white/20' 
-                  : 'bg-teal-950/40 text-teal-100 border-teal-500/20 rounded-tr-none hover:border-teal-500/35 shadow-[0_0_15px_rgba(20,184,166,0.05)]'
+                  ? 'bg-white/10 text-slate-100 border-white/10 rounded-tl-none hover:border-white/20' 
+                  : 'bg-white/5 text-white border-white/10 rounded-tr-none hover:border-white/20'
               }`}>
                 {msg.isBot && msg.animate ? (
                   <Typewriter text={msg.text} speed={30} onUpdate={scrollChatToBottom}/>
@@ -447,7 +448,7 @@ const ClientPortal = () => {
 
         <form onSubmit={handleSendMessage} className="flex gap-3 shrink-0 items-center">
           <div className="flex-1">
-            <div className="w-full rounded-xl p-[1px] bg-white/10 hover:bg-white/15 focus-within:bg-gradient-to-r focus-within:from-blue-500 focus-within:to-emerald-500 focus-within:shadow-[0_0_15px_rgba(52,211,153,0.2)] transition-all duration-300">
+            <div className="w-full rounded-xl p-[1px] bg-white/10 hover:bg-white/15 focus-within:bg-white/20 transition-all duration-300">
               <input 
                 type="text" 
                 value={chatInput}
@@ -462,13 +463,63 @@ const ClientPortal = () => {
             whileTap={{ scale: 0.95 }}
             type="submit" 
             disabled={isChatLoading || !chatInput.trim()} 
-            className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 text-white min-h-[44px] px-6 py-3 rounded-xl font-bold transition-all shadow-md flex items-center justify-center border-0"
+            className="btn-pill-primary disabled:opacity-40 min-h-[44px] px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center border-none"
           >
             <span className="hidden sm:inline">Send</span>
             <span className="sm:hidden">→</span>
           </motion.button>
         </form>
       </motion.div>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLogoutConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-sm card-elevated gradient-border p-6 shadow-2xl z-10 flex flex-col items-center text-center font-dmsans text-white"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
+                <LogOut className="size-6 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Confirm Logout</h3>
+              <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+                Are you sure you want to log out of the Client Portal?
+              </p>
+              <div className="flex gap-3 w-full justify-center">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 btn-pill-ghost !py-2.5"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    logout();
+                  }}
+                  className="flex-1 btn-pill-danger !py-2.5"
+                >
+                  Log Out
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -22,7 +22,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             {isActive && (
               <motion.div 
                 layoutId="active-pill"
-                className="absolute inset-0 mx-auto w-14 h-14 rounded-2xl bg-teal-500/20 shadow-[0_0_20px_rgba(45,212,191,0.25)] border border-teal-400/50 pointer-events-none"
+                className="absolute inset-0 mx-auto w-14 h-14 rounded-2xl border border-white/30 pointer-events-none"
+                style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.07) 100%)', boxShadow: '0 0 24px rgba(255,255,255,0.10), 0 4px 12px rgba(0,0,0,0.4)'}}
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
@@ -31,7 +32,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               whileTap={{ scale: 0.95 }}
               className={`relative z-10 min-w-[44px] min-h-[44px] size-14 rounded-2xl flex items-center justify-center transition-all duration-300 group
                 ${isActive 
-                  ? "text-teal-400" 
+                  ? "text-white" 
                   : "bg-transparent text-slate-400 hover:bg-white/[0.03] hover:text-white border border-transparent hover:border-white/10 hover:shadow-[0_0_10px_rgba(255,255,255,0.05)]"
                 }`}
               title={item.label}
@@ -48,7 +49,8 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {/* Desktop Sidebar (md and up) */}
-      <div className="hidden md:flex fixed left-0 top-[4rem] h-[calc(100vh-4rem)] w-[5rem] bg-[#0e1322]/60 backdrop-blur-lg border-r border-t border-white/[0.06] z-30">
+      <div className="hidden md:flex fixed left-0 top-[4rem] h-[calc(100vh-4rem)] w-[5rem] backdrop-blur-lg border-r border-white/[0.08] z-30"
+        style={{background:'linear-gradient(180deg, rgba(10,10,10,0.92) 0%, rgba(8,8,8,0.96) 100%)', boxShadow:'1px 0 0 rgba(255,255,255,0.04)'}}>
         {sidebarContent}
       </div>
 
@@ -70,7 +72,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed left-0 top-0 h-screen w-20 bg-[#0e1322]/90 backdrop-blur-lg border-r border-white/[0.06] z-50 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.8)]"
+              className="md:hidden fixed left-0 top-0 h-screen w-20 bg-black/90 backdrop-blur-lg border-r border-white/[0.05] z-50 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.8)]"
             >
               <button 
                 onClick={onClose} 

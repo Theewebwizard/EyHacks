@@ -2,48 +2,35 @@ import { generateClientToken } from "../lib/utils.js";
 import ClientAuth from "../models/clientAuth.model.js";
 import bcrypt from "bcryptjs";
 import { logger } from "../lib/logger.js";
+import { sendForgotPasswordEmail } from "../lib/email.js";
+import crypto from "crypto";
 
-export const signup = async (req, res) => {
-    const { fullName, email, password } = req.body;
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
     try {
-        if (!fullName || !email || !password) {
-            return res.status(400).json({ message: "All fields are required" });
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: "Password must be at least 6 characters" });
+        const client = await ClientAuth.findOne({ email: new RegExp('^' + email.trim() + '$', 'i') });
+        if (!client) {
+            return res.status(404).json({ message: "No account found with this email" });
         }
 
-        const clientExists = await ClientAuth.findOne({ email: new RegExp('^' + email + '$', 'i') });
-
-        if (clientExists) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-
+        // Generate a new random 8-character temporary password
+        const tempPassword = crypto.randomBytes(4).toString('hex');
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(tempPassword, salt);
 
-        const newClient = new ClientAuth({
-            fullName,
-            email: email.toLowerCase(),
-            password: hashedPassword,
-        });
+        client.password = hashedPassword;
+        await client.save();
 
-        if (newClient) {
-            // generate jwt token
-            generateClientToken(newClient._id, res);
-            await newClient.save();
+        // Send reset email to client
+        await sendForgotPasswordEmail(client.email, tempPassword);
 
-            res.status(201).json({
-                _id: newClient._id,
-                fullName: newClient.fullName,
-                email: newClient.email,
-            });
-        } else {
-            res.status(400).json({ message: "Invalid client data" });
-        }
+        res.status(200).json({ message: "Temporary password sent successfully" });
     } catch (error) {
-        logger.error("Error in client signup controller", { error: error.message });
+        logger.error("Error in client forgotPassword controller", { error: error.message });
         res.status(500).json({ message: "Internal server error" });
     }
 };
