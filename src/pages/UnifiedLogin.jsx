@@ -292,7 +292,7 @@ const UnifiedLogin = () => {
               {activeTab === 'agent' && (
                 <div className="text-center mt-6">
                   <p className="text-gray-400 text-sm">
-                    Don't have an account?{" "}
+                    Don&apos;t have an account?{" "}
                     <Link to="/signup" className="text-white hover:text-gray-300 font-bold underline">
                       Create Agent Account
                     </Link>

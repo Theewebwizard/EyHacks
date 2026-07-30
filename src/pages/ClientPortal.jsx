@@ -325,7 +325,7 @@ const ClientPortal = () => {
                   </div>
                 </div>
                 <p className="text-gray-300 text-sm italic">
-                  "{claim.feedback.comments}"
+                  &quot;{claim.feedback.comments}&quot;
                 </p>
               </div>
             ) : (

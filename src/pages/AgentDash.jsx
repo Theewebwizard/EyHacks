@@ -1,11 +1,9 @@
 import { FileUser, Headset } from "lucide-react";
-import { React, useEffect, useRef } from "react";
-import ChatInput from "../components/ChatInput";
+import { useEffect, useRef } from "react";
 import ChatContainer from "../components/ChatContainer";
 import { useStore } from "../store/useStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { useSettingsStore } from "../store/useSettingsStore";
-import GlowEffect from "../components/GlowEffect";
 
 // Monochrome theme variables removed.
 const playPing = () => {
@@ -203,7 +201,7 @@ const AgentDash = () => {
                     </div>
                   </div>
                   <p className="text-sm text-slate-400 leading-relaxed relative z-10 italic">
-                    "{c.feedback.comments}"
+                    &quot;{c.feedback.comments}&quot;
                   </p>
                   <div className="mt-3 text-[10px] font-mono text-slate-600 relative z-10">
                     REF: {c.claimID}

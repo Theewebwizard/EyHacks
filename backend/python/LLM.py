@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
+import requests
 import numpy as np
 from transformers import pipeline
 from langchain_groq import ChatGroq
