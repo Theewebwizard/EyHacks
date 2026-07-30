@@ -86,7 +86,8 @@ services:
       - API_KEY=${API_KEY}
     volumes:
       - ./backend/python:/app
-    command: ["sleep", "infinity"]
+      - ./backend/uploads:/app/uploads
+    command: ["python", "worker.py"]
     depends_on:
       - rabbitmq
 

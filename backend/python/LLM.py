@@ -31,6 +31,11 @@ logger = get_logger(__name__)
 load_dotenv()
 api_key = os.getenv("API_KEY")
 mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "eyhacks_internal_dev_secret")
+
+def _internal_headers():
+    """Return the authentication headers required for /internal_emit calls."""
+    return {"X-Internal-Secret": INTERNAL_API_SECRET}
 
 app = Flask(__name__)
 CORS(app)
@@ -127,7 +132,7 @@ def schedule_task(title: str, description: str, due_date: str, client_email: str
         if res.status_code in [200, 201]:
             # Emit to frontend in real-time
             try:
-                requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': res.json()})
+                requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': res.json()}, headers=_internal_headers())
             except Exception:
                 pass
             return f"Task '{title}' scheduled successfully for {due_date}."
@@ -239,7 +244,9 @@ workflow.set_entry_point("generate")
 
 compiled_graph = workflow.compile()
 
-conversation_history = []
+# Per-session conversation history, keyed by Twilio streamSid.
+# The process-global list has been removed to prevent cross-call state bleed.
+active_sessions: dict = {}
 
 
 def analyze_sentiment_and_emit(conversation_text):
@@ -276,7 +283,7 @@ def analyze_sentiment_and_emit(conversation_text):
                 "message": message,
                 "score": highest_score
             }
-            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'sentiment_alert', 'data': data})
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'sentiment_alert', 'data': data}, headers=_internal_headers())
     except Exception as e:
         logger.error(f"Sentiment analysis error: {e}")
 
@@ -303,9 +310,9 @@ Return ONLY valid JSON, no other text."""
         logger.error(f"Extraction error: {e}")
     return {"claim_amount": "N/A", "incident_date": "N/A", "client_summary": "", "tasks": []}
 
-def process_conversation(conversation_text):
-    global conversation_history
-    conversation_history.append(HumanMessage(content=conversation_text))
+def process_conversation(conversation_text, session_history: list):
+    """Process a transcript line within the context of a specific call session."""
+    session_history.append(HumanMessage(content=conversation_text))
 
     # Run Sentiment Analysis
     analyze_sentiment_and_emit(conversation_text)
@@ -313,31 +320,31 @@ def process_conversation(conversation_text):
     # Extract financial details and emit client summary
     extracted = extract_financial_details(conversation_text)
     if extracted.get('client_summary') or extracted.get('claim_amount') != 'N/A':
-        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'client_summary', 'data': extracted})
-        
+        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'client_summary', 'data': extracted}, headers=_internal_headers())
+
     if extracted.get('tasks') and len(extracted['tasks']) > 0:
         for task in extracted['tasks']:
-            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': task})
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_ai_task', 'data': task}, headers=_internal_headers())
 
     try:
-        # Run LangGraph
-        initial_state: AgentState = {"messages": conversation_history, "suggestion": "", "validated": False}
+        # Run LangGraph with the per-session history
+        initial_state: AgentState = {"messages": session_history, "suggestion": "", "validated": False}
         final_state = compiled_graph.invoke(initial_state)
 
-        # Update history with any new messages generated during the graph execution (e.g. tool calls, tool responses)
-        new_messages = final_state["messages"][len(conversation_history):]
+        # Update the session history with any new messages generated during graph execution
+        new_messages = final_state["messages"][len(session_history):]
         if new_messages:
-            conversation_history.extend(new_messages)
+            session_history.extend(new_messages)
 
         formatted_response = final_state["suggestion"]
         if formatted_response:
-            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': formatted_response}})
+            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': formatted_response}}, headers=_internal_headers())
 
         return formatted_response
     except Exception as e:
         logger.error(f"Error in process_conversation: {e}")
         fallback_suggestion = f"⚠️ BPO Suggestion Draft: [Suggestion currently unavailable due to rate limit/error: {str(e)}]"
-        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': fallback_suggestion}})
+        requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'new_suggestion', 'data': {'response': fallback_suggestion}}, headers=_internal_headers())
         return fallback_suggestion
 
 # --- Deepgram Audio Streaming (Async Bridge) ---
@@ -364,19 +371,23 @@ async def twilio_ws_handler(websocket):
     logger.info("=========================================")
     logger.info("TWILIO WEBSOCKET CONNECTION INITIATED!")
     logger.info("=========================================")
-    
+
     api_key = os.getenv("DEEPGRAM_API_KEY")
     if not api_key:
         logger.error("Missing DEEPGRAM_API_KEY")
         return
-        
+
     dg_url = "wss://api.deepgram.com/v1/listen?encoding=mulaw&sample_rate=8000&channels=1&model=nova-2&smart_format=true"
-    
+
+    # Each call session gets its own isolated conversation history.
+    # stream_sid is captured from the Twilio "start" event frame.
+    stream_sid: str | None = None
+
     try:
         logger.info(f"Attempting to connect to Deepgram: {dg_url}")
         async with websockets.connect(dg_url, additional_headers={"Authorization": f"Token {api_key}"}) as dg_socket:
             logger.info("Successfully connected to Deepgram!")
-            
+
             async def receive_from_deepgram():
                 logger.info("Started receiving from Deepgram...")
                 try:
@@ -392,14 +403,28 @@ async def twilio_ws_handler(websocket):
                                 speaker_name = "Customer"
                                 log_entry = f"{speaker_name}: {transcript}"
                                 logger.info(f"Twilio Transcript: {log_entry}")
-                                requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
-                                threading.Thread(target=process_conversation, args=(log_entry,)).start()
+                                requests.post(
+                                    'http://127.0.0.1:5000/internal_emit',
+                                    json={'event': 'live_transcription', 'data': {'text': log_entry}},
+                                    headers=_internal_headers()
+                                )
+                                # Pass the session-specific history into the conversation processor.
+                                sid = stream_sid
+                                if sid and sid in active_sessions:
+                                    session_hist = active_sessions[sid]
+                                else:
+                                    # Fallback: create an anonymous session if start event was missed.
+                                    session_hist = []
+                                threading.Thread(
+                                    target=process_conversation,
+                                    args=(log_entry, session_hist)
+                                ).start()
                 except Exception as e:
                     logger.error(f"Deepgram receive error: {e}", exc_info=True)
 
             # Start listening to Deepgram in the background
             asyncio.create_task(receive_from_deepgram())
-            
+
             try:
                 logger.info("Waiting for Twilio messages...")
                 async for message in websocket:
@@ -407,7 +432,13 @@ async def twilio_ws_handler(websocket):
                     if data["event"] == "connected":
                         logger.info(f"Twilio stream connected: {data}")
                     elif data["event"] == "start":
-                        logger.info(f"Twilio stream started: {data}")
+                        # Capture streamSid and initialise an isolated session history.
+                        stream_sid = data.get("start", {}).get("streamSid") or data.get("streamSid")
+                        if stream_sid:
+                            active_sessions[stream_sid] = []
+                            logger.info(f"Twilio stream started — session initialised for streamSid: {stream_sid}")
+                        else:
+                            logger.warning(f"Twilio start event missing streamSid: {data}")
                     elif data["event"] == "media":
                         chunk = base64.b64decode(data["media"]["payload"])
                         await dg_socket.send(chunk)
@@ -420,6 +451,11 @@ async def twilio_ws_handler(websocket):
                 logger.info("Twilio socket finally block reached.")
     except Exception as outer_e:
         logger.error(f"Failed to connect to Deepgram or outer error: {outer_e}", exc_info=True)
+    finally:
+        # Clean up the per-session state to prevent unbounded memory growth.
+        if stream_sid and stream_sid in active_sessions:
+            del active_sessions[stream_sid]
+            logger.info(f"Session {stream_sid} cleaned up from active_sessions.")
 
 
 async def deepgram_connection_task():
@@ -450,8 +486,8 @@ async def deepgram_connection_task():
                             speaker_name = "Agent" if speaker == 0 else "Customer"
                             log_entry = f"{speaker_name}: {transcript}"
                             logger.info(f"Deepgram Transcript: {log_entry}")
-                            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}})
-                            threading.Thread(target=process_conversation, args=(log_entry,)).start()
+                            requests.post('http://127.0.0.1:5000/internal_emit', json={'event': 'live_transcription', 'data': {'text': log_entry}}, headers=_internal_headers())
+                            threading.Thread(target=process_conversation, args=(log_entry, [])).start()
             except Exception as e:
                 logger.error(f"Deepgram receive error: {e}")
 
@@ -544,6 +580,12 @@ def test_emit():
 
 @app.route('/internal_emit', methods=['POST'])
 def internal_emit():
+    # Validate the shared secret to prevent unauthenticated callers from
+    # injecting arbitrary SocketIO events into the frontend.
+    provided_secret = request.headers.get("X-Internal-Secret", "")
+    if provided_secret != INTERNAL_API_SECRET:
+        logger.warning("Rejected /internal_emit call with invalid or missing X-Internal-Secret.")
+        return jsonify({"error": "Unauthorized"}), 401
     data = request.json
     socketio.emit(data['event'], data['data'])
     return jsonify({"status": "emitted"}), 200
@@ -551,9 +593,9 @@ def internal_emit():
 
 @app.route('/refresh_history', methods=['POST'])
 def refresh_history():
-    global conversation_history
-    conversation_history = []
-    return jsonify({"status": "success", "message": "Conversation history cleared"}), 200
+    # Clears all in-progress session histories. Useful for debug/reset.
+    active_sessions.clear()
+    return jsonify({"status": "success", "message": "All active session histories cleared"}), 200
 
 
 if __name__ == '__main__':

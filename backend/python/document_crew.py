@@ -1,9 +1,32 @@
 import os
+import litellm
 from crewai import Agent, Task, Crew, Process, LLM
 import pytesseract
 from PIL import Image
 from PyPDF2 import PdfReader
 from logger_config import get_logger
+
+litellm.drop_params = True
+
+_orig_completion = litellm.completion
+def _clean_messages(kwargs):
+    if "messages" in kwargs and isinstance(kwargs["messages"], list):
+        for msg in kwargs["messages"]:
+            if isinstance(msg, dict):
+                msg.pop("cache_breakpoint", None)
+
+def _patched_completion(*args, **kwargs):
+    _clean_messages(kwargs)
+    return _orig_completion(*args, **kwargs)
+
+litellm.completion = _patched_completion
+
+_orig_acompletion = litellm.acompletion
+async def _patched_acompletion(*args, **kwargs):
+    _clean_messages(kwargs)
+    return await _orig_acompletion(*args, **kwargs)
+
+litellm.acompletion = _patched_acompletion
 
 logger = get_logger(__name__)
 
@@ -23,8 +46,10 @@ def process_document_with_crewai(claim_id: str, file_path: str, channel=None):
                 logger.error(f"Failed to publish progress: {e}")
 
     publish_progress("Booting AI Agents & reading document...")
-    os.environ["GROQ_API_KEY"] = os.getenv("API_KEY", "")
-    llm_model = "groq/llama-3.1-8b-instant"
+    api_key = os.getenv("API_KEY", "")
+    os.environ["GROQ_API_KEY"] = api_key
+    os.environ["LITELLM_DROP_PARAMS"] = "true"
+    llm_model = LLM(model="groq/llama-3.1-8b-instant", api_key=api_key)
 
     extracted_text: str = ""
     try:
@@ -97,7 +122,8 @@ def process_document_with_crewai(claim_id: str, file_path: str, channel=None):
         agents=[ocr_specialist, fraud_detector, policy_aligner],
         tasks=[extract_task, fraud_task, align_task],
         process=Process.sequential,
-        verbose=True
+        verbose=True,
+        cache=False
     )
 
     # Execute
