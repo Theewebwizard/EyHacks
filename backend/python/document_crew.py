@@ -49,6 +49,8 @@ def process_document_with_crewai(claim_id: str, file_path: str, channel=None):
     api_key = os.getenv("API_KEY", "")
     os.environ["GROQ_API_KEY"] = api_key
     os.environ["LITELLM_DROP_PARAMS"] = "true"
+    os.environ["LITELLM_NUM_RETRIES"] = "5"
+    litellm.num_retries = 5
     llm_model = LLM(model="groq/llama-3.1-8b-instant", api_key=api_key)
 
     extracted_text: str = ""

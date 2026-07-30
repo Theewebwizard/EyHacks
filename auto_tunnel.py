@@ -39,26 +39,56 @@ def save_env(env_vars):
                 f.write(f"{k}={v}\n")
 
 def spawn_tunnel(port):
-    print(f"Starting cloudflared tunnel for port {port}...")
-    # Cloudflared outputs the URL to stderr
+    import shutil
+    
+    cmd = []
+    tool_type = ""
+    
+    cloudflared_bin = "./cloudflared" if os.path.exists("./cloudflared") else shutil.which("cloudflared")
+    
+    if cloudflared_bin:
+        print(f"Starting cloudflared tunnel for port {port}...")
+        cmd = [cloudflared_bin, "tunnel", "--url", f"http://localhost:{port}"]
+        tool_type = "cloudflared"
+    elif shutil.which("ngrok"):
+        print(f"Starting ngrok tunnel for port {port}...")
+        cmd = ["ngrok", "http", str(port)]
+        tool_type = "ngrok"
+    else:
+        print(f"Starting localtunnel (via npx) for port {port}...")
+        cmd = ["npx", "-y", "localtunnel", "--port", str(port)]
+        tool_type = "localtunnel"
+
     proc = subprocess.Popen(
-        ["cloudflared", "tunnel", "--url", f"http://localhost:{port}"],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
     
     url = None
-    # Read stderr line by line until we find the trycloudflare.com URL
-    while True:
-        line = proc.stderr.readline()
+    # Read output line by line until we find the public URL
+    stream = proc.stdout if tool_type == "localtunnel" else proc.stderr
+    
+    start_time = time.time()
+    while time.time() - start_time < 20:
+        line = stream.readline()
         if not line and proc.poll() is not None:
             break
         
-        match = re.search(r'(https://[a-zA-Z0-9-]+\.trycloudflare\.com)', line)
-        if match:
-            url = match.group(1)
-            break
+        if tool_type == "cloudflared":
+            match = re.search(r'(https://[a-zA-Z0-9-]+\.trycloudflare\.com)', line)
+            if match:
+                url = match.group(1)
+                break
+        elif tool_type == "localtunnel":
+            match = re.search(r'(https://[a-zA-Z0-9-]+\.loca\.lt)', line)
+            if match:
+                url = match.group(1)
+                break
+            elif "your url is:" in line.lower():
+                url = line.split("your url is:")[1].strip()
+                break
             
     if url:
         print(f"[SUCCESS] Tunnel established for port {port}: {url}")

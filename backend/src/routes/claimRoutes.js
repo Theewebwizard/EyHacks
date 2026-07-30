@@ -188,10 +188,15 @@ router.post('/assign', async (req, res) => {
     res.send('Claims assigned');
 });
 
-// Get claims for an agent
+// Get claims for an agent / claims queue (returns all claims sorted by newest first)
 router.get('/agent/:agentID', async (req, res) => {
-    const claims = await Claim.find({ agentID: req.params.agentID });
-    res.send(claims);
+    try {
+        const claims = await Claim.find({}).sort({ createdAt: -1 });
+        res.status(200).send(claims);
+    } catch (error) {
+        logger.error("Error fetching agent claims", { error: error.message });
+        res.status(500).json({ error: "Failed to fetch claims." });
+    }
 });
 
 //search claim by claim ID

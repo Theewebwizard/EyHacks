@@ -3,12 +3,14 @@ import os
 from twilio.rest import Client
 
 def load_env():
-    if os.path.exists('.env'):
-        with open('.env') as f:
-            for line in f:
-                if '=' in line and not line.startswith('#'):
-                    k, v = line.strip().split('=', 1)
-                    os.environ[k] = v
+    for path in ['.env', 'backend/.env']:
+        if os.path.exists(path):
+            with open(path) as f:
+                for line in f:
+                    if '=' in line and not line.startswith('#'):
+                        k, v = line.strip().split('=', 1)
+                        if k not in os.environ:
+                            os.environ[k] = v
 
 load_env()
 
