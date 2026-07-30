@@ -67,54 +67,74 @@ def process_document_with_crewai(claim_id: str, file_path: str, channel=None):
     if not isinstance(extracted_text, str) or not extracted_text.strip():
         raise ValueError(f"CRITICAL ERROR: Extracted text is empty or invalid for document {file_path}.")
 
-    # Define Agents
+    # Define Enterprise Agents
     ocr_specialist = Agent(
-        role='OCR and Data Extraction Specialist',
-        goal='Extract clean, structured information from raw document text.',
-        backstory='An expert in optical character recognition and parsing unstructured data from medical and financial documents.',
+        role='Medical OCR & Entity Extraction Specialist',
+        goal='Accurately extract essential clinical and financial entities from claim documents.',
+        backstory='Certified medical coding and OCR parser specialized in identifying Patient Names, Provider Credentials, Dates of Service, Diagnosis (ICD-10/CPT), Itemized Costs, and Payment Receipts.',
         verbose=True,
         allow_delegation=False,
         llm=llm_model
     )
 
     fraud_detector = Agent(
-        role='Fraud Detection Analyst',
-        goal='Analyze the extracted document data for inconsistencies, anomalies, or common fraud indicators.',
-        backstory='A seasoned investigator with a sharp eye for detail, specializing in catching fraudulent insurance claims.',
+        role='Health Insurance Fraud & Risk Analyst',
+        goal='Evaluate claim data against industry anti-fraud heuristics (NHCAA & CMS FPS guidelines).',
+        backstory='Expert Healthcare Fraud Investigator proficient in detecting billing anomalies (unbundling, upcoding, duplicate claims), identity theft, clinical misalignments, and temporal/financial contradictions.',
         verbose=True,
         allow_delegation=False,
         llm=llm_model
     )
 
     policy_aligner = Agent(
-        role='Policy Alignment Agent',
-        goal='Cross-reference the verified document data with the active policy rules to determine claim validity.',
-        backstory='A strict compliance officer who knows the company policies inside out and ensures every claim aligns with the rules.',
+        role='Medical Claims Compliance & Policy Officer',
+        goal='Cross-reference extracted document data against insurance policy rules to render a binding claim decision.',
+        backstory='Senior Medical Claims Adjudicator who applies standard adjudication guidelines to approve legitimate claims, send high-value/ambiguous claims to manual review, and reject fraudulent or unreadable submissions.',
         verbose=True,
         allow_delegation=False,
         llm=llm_model
     )
 
-    # Define Tasks
+    # Define Standardized Verification Tasks
     extract_task = Task(
-        description=f"Analyze the following raw text extracted from a document for Claim ID {claim_id}. Extract the key entities (names, dates, amounts, diagnosis/financial terms).\n\nRaw Text:\n{extracted_text}",
-        expected_output="A structured JSON or bulleted list of key entities found in the document.",
+        description=f"Analyze the following raw OCR text extracted from document for Claim ID {claim_id}.\n"
+                    f"Extract key entities into structured format:\n"
+                    f"- Claim ID & Patient Full Name\n"
+                    f"- Healthcare Provider / Facility Name & Credentials\n"
+                    f"- Date of Service & Document Issue Date\n"
+                    f"- Medical Diagnosis / Procedure Description\n"
+                    f"- Itemized Charges & Total Amount\n"
+                    f"- Payment & Receipt Status\n\n"
+                    f"Raw Text:\n{extracted_text}",
+        expected_output="Structured summary of extracted clinical and financial entities.",
         agent=ocr_specialist,
-        callback=lambda out: publish_progress("Extracting & structuring key entities...")
+        callback=lambda out: publish_progress("Extracting & structuring clinical entities...")
     )
 
     fraud_task = Task(
-        description=f"Review the structured entities extracted by the OCR Specialist for Claim ID {claim_id}. Check for logical inconsistencies (e.g., dates in the future, suspiciously round numbers, mismatched names).",
-        expected_output="A fraud risk assessment report indicating 'Low', 'Medium', or 'High' risk with explanations.",
+        description=f"Evaluate the extracted data for Claim ID {claim_id} against standard Healthcare Fraud Indicators (CMS/NHCAA):\n"
+                    f"1. Temporal Integrity: Service dates in 2025/2026 are valid current dates. (Flag only if date is completely unreadable or missing).\n"
+                    f"2. Financial Integrity: Check if itemized charges match the total amount. (Flag only if there is a severe arithmetic contradiction).\n"
+                    f"3. Clinical Alignment: Verify that the treatment logically corresponds to the reported diagnosis.\n"
+                    f"4. Document Authenticity: Check for signs of blatant fabrication or completely garbled noise.\n"
+                    f"Assign an Overall Risk Rating: 'Low', 'Medium', or 'High' with clear reasoning.",
+        expected_output="Fraud Risk Assessment Report with risk level and breakdown.",
         agent=fraud_detector,
-        callback=lambda out: publish_progress("Checking for logical inconsistencies & fraud...")
+        callback=lambda out: publish_progress("Running CMS/NHCAA anti-fraud heuristics...")
     )
 
     align_task = Task(
-        description=f"Given the extracted data and the fraud assessment, determine if the document supports a valid claim payout for Claim ID {claim_id}. Output a final decision ('Approved', 'Pending Manual Review', 'Rejected').",
-        expected_output="Final decision string with a brief justification.",
+        description=f"Adjudicate Claim ID {claim_id} according to Standard Insurance Policy Rules:\n\n"
+                    f"POLICY RULES:\n"
+                    f"• RULE 101 (APPROVAL): If the document is a legible medical certificate/invoice containing Patient Name, Provider Name, Service Date, Diagnosis, and Total Amount with LOW fraud risk, decision MUST be 'Approved'.\n"
+                    f"• RULE 102 (MANUAL REVIEW): If the claim is eligible but total amount exceeds $5,000.00 or contains minor OCR ambiguities requiring human verification, decision MUST be 'Pending Manual Review'.\n"
+                    f"• RULE 103 (REJECTION): If the document is completely unreadable, lacks patient/provider identity, has severe billing contradictions, or has HIGH fraud risk, decision MUST be 'Rejected'.\n\n"
+                    f"Output your final adjudication strictly starting with:\n"
+                    f"**Final Decision:** Approved (or Pending Manual Review / Rejected)\n\n"
+                    f"Followed by a concise 2-3 sentence policy justification.",
+        expected_output="Final claim decision starting with '**Final Decision:** Approved' (or Pending Manual Review / Rejected) with policy rationale.",
         agent=policy_aligner,
-        callback=lambda out: publish_progress("Finalizing decision & generating summary...")
+        callback=lambda out: publish_progress("Applying adjudication policy rules & finalizing verdict...")
     )
 
     # Assemble Crew

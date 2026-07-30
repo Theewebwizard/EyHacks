@@ -1,0 +1,15 @@
+CITY GENERAL HOSPITAL
+MEDICAL CERTIFICATE & INVOICE
+
+Patient Name: John Doe
+Claim ID: CLM-1005
+Date: 2026-07-20
+Doctor: Dr. Sarah Connor, MD
+
+Diagnosis: Acute Appendicitis Surgery
+Hospital Treatment & Recovery: 3 Days
+Total Cost: ,500.00
+Payment Status: Full Paid
+
+This document certifies that the patient underwent treatment
+and is eligible for insurance reimbursement.
