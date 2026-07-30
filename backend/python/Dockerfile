@@ -1,12 +1,27 @@
-FROM python:3.10-slim
+FROM python:3.10-slim AS base
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y gcc g++ libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0 ffmpeg tesseract-ocr && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2 \
+    libportaudiocpp0 \
+    ffmpeg \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Main service target
+FROM base AS realtime-voice
 CMD ["python", "LLM.py"]
+
+# Worker target
+FROM base AS python-worker
+CMD ["python", "worker.py"]

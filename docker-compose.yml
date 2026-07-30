@@ -31,6 +31,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     ports:
       - "5001:5001"
     environment:
@@ -55,6 +56,8 @@ services:
     build:
       context: ./backend/python
       dockerfile: Dockerfile
+      target: realtime-voice
+      network: host
     ports:
       - "5000:5000"
       - "5002:5002"
@@ -72,7 +75,9 @@ services:
   python-worker:
     build:
       context: ./backend/python
-      dockerfile: Dockerfile.worker
+      dockerfile: Dockerfile
+      target: python-worker
+      network: host
     environment:
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - API_KEY=${API_KEY}
@@ -89,3 +94,6 @@ volumes:
 networks:
   default:
     name: eyhacks_net
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1200"
